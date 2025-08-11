@@ -16,17 +16,21 @@ router.post('/', async (req, res) => {
 // Get all services (with optional date filter)
 router.get('/', async (req, res) => {
   try {
-    const { date } = req.query;
+    const { date, serviceType } = req.query;
 
-    let services;
+    let query = {};
 
     if (date) {
       const filterDate = new Date(date);
-      services = await Service.find({ 'availability.date': filterDate, 'availability.isAvailable': true });
-    } else {
-      services = await Service.find();
+      query['availability.date'] = filterDate;
+      query['availability.isAvailable'] = true;
     }
 
+    if (serviceType) {
+      query.serviceType = serviceType;
+    }
+
+    const services = await Service.find(query);
     res.json(services);
   } catch (err) {
     res.status(500).json({ error: err.message });
