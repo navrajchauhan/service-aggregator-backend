@@ -5,6 +5,9 @@ import ServiceList from './components/ServiceList';
 import Login from './components/Login';
 import Register from './components/Register';
 import AddService from './components/AddService';
+import MyServices from './components/MyServices';
+import MyBookings from './components/MyBookings';
+
 import './App.css';
 
 const Navbar = () => {
@@ -21,6 +24,9 @@ const Navbar = () => {
         alignItems: 'center',
       }}
     >
+    <Link to="/my-bookings" style={{ color: '#4cc9f0', textDecoration: 'none' }}>
+  My Bookings
+</Link>
       <Link
         to="/"
         style={{
@@ -37,12 +43,14 @@ const Navbar = () => {
         {user ? (
           <>
             {user.role === 'provider' && (
-              <Link
-                to="/add-service"
-                style={{ color: '#4cc9f0', textDecoration: 'none' }}
-              >
-                + Add Service
-              </Link>
+              <>
+                <Link to="/my-services" style={{ color: '#4cc9f0', textDecoration: 'none' }}>
+                  My Services
+                </Link>
+                <Link to="/add-service" style={{ color: '#4cc9f0', textDecoration: 'none' }}>
+                  + Add Service
+                </Link>
+              </>
             )}
             <span>
               Hello, <strong>{user.name}</strong> ({user.role})
@@ -73,6 +81,7 @@ const Navbar = () => {
         )}
       </div>
     </nav>
+    
   );
 };
 
@@ -87,6 +96,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/add-service" element={<AddService />} />
+            <Route path="/my-services" element={<MyServices />} />
+            <Route path="/my-bookings" element={<MyBookings />} />
           </Routes>
         </div>
       </Router>

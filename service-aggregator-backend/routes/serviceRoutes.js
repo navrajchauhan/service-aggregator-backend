@@ -52,5 +52,24 @@ router.get('/my-services', auth, isProvider, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Delete a service (only the owner can delete)
+router.delete('/:id', auth, isProvider, async (req, res) => {
+  try {
+    const service = await Service.findById(req.params.id);
 
+    if (!service) {
+      return res.status(404).json({ error: 'Service not found' });
+    }
+
+    // Check if the logged-in user owns this service
+    if (service.provider.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized to delete this service' });
+    }
+
+    await service.deleteOne();
+    res.json({ message: 'Service deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
