@@ -31,7 +31,7 @@ Providers can manage their services and availability, while consumers can browse
 - React.js
 - React Router
 - Axios
-- Context API (for authentication)
+- Context API (Authentication)
 
 **Backend**
 - Node.js
@@ -43,6 +43,8 @@ Providers can manage their services and availability, while consumers can browse
 ---
 
 ## Project Structure
+
+```text
 service-aggregator-backend/          ← Main repository
 ├── service-aggregator-backend/      ← Backend (Node + Express)
 │   ├── models/
@@ -52,77 +54,91 @@ service-aggregator-backend/          ← Main repository
 │   └── package.json
 │
 └── service-aggregator-frontend/     ← Frontend (React)
-├── src/
-│   ├── components/
-│   ├── context/
-│   └── App.js
-└── package.json
+    ├── src/
+    │   ├── components/
+    │   ├── context/
+    │   └── App.js
+    └── package.json
+```
 
-
+---
 
 ## How to Run Locally
 
 ### 1. Backend Setup
 
-**(in terminal)**
-bash
+```bash
 cd service-aggregator-backend
 npm install
+```
 
+Create a `.env` file inside the `service-aggregator-backend` folder:
 
-## Create a .env file inside service-aggregator-backend folder:
-env
+```env
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_secret_key
 PORT=5000
+```
 
 Start the backend:
-Bash
-npm run dev
-Backend will run on: http://localhost:5000
 
-2. Frontend Setup
+```bash
+npm run dev
+```
+
+Backend will run on: [http://localhost:5000](http://localhost:5000)
+
+---
+
+### 2. Frontend Setup
+
 Open a new terminal:
-Bash
+
+```bash
 cd service-aggregator-frontend
 npm install
 npm start
-Frontend will run on: http://localhost:3000
+```
 
-**API Endpoints**
-Auth
+Frontend will run on: [http://localhost:3000](http://localhost:3000)
 
-POST /api/auth/register
-POST /api/auth/login
+---
 
-Services
+## API Endpoints
 
-GET    /api/services
-POST   /api/services (Provider only)
-PUT    /api/services/:id (Owner only)
-DELETE /api/services/:id (Owner only)
-GET    /api/services/my-services (Provider only)
-POST   /api/services/:id/block-date
-DELETE /api/services/:id/block-date/:dateId
+### Auth
+- `POST /api/auth/register`
+- `POST /api/auth/login`
 
-Bookings
+### Services
+- `GET /api/services`
+- `POST /api/services` (Provider only)
+- `PUT /api/services/:id` (Owner only)
+- `DELETE /api/services/:id` (Owner only)
+- `GET /api/services/my-services` (Provider only)
+- `POST /api/services/:id/block-date`
+- `DELETE /api/services/:id/block-date/:dateId`
 
-POST   /api/bookings (Consumer only)
-GET    /api/bookings/my-bookings
-PATCH  /api/bookings/:id/status (Provider only)
+### Bookings
+- `POST /api/bookings` (Consumer only)
+- `GET /api/bookings/my-bookings`
+- `PATCH /api/bookings/:id/status` (Provider only)
 
+---
 
-Future Improvements
+## Future Improvements
 
-Better UI/UX design
-Service detail page
-Image upload for services
-Ratings & Reviews
-Email notifications
-Payment integration
-Search & advanced filters
+- Better UI/UX design
+- Service detail page
+- Image upload for services
+- Ratings & Reviews
+- Email notifications
+- Payment integration
+- Search & advanced filters
 
+---
 
-Author
-Navraj Chauhan
+## Author
 
+**Navraj Chauhan**
+```
