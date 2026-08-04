@@ -56,6 +56,7 @@ router.get('/my-bookings', auth, async (req, res) => {
 });
 
 // Update booking status (Provider can confirm/cancel)
+// Update booking status (Provider can confirm/cancel)
 router.patch('/:id/status', auth, async (req, res) => {
   try {
     const { status } = req.body;
@@ -69,13 +70,34 @@ router.patch('/:id/status', auth, async (req, res) => {
       return res.status(404).json({ error: 'Booking not found' });
     }
 
-    // Only the provider of this booking can update status
     if (booking.provider.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
     booking.status = status;
     await booking.save();
+
+    // When confirmed → block that date
+    if (status === 'confirmed') {
+      const service = await Service.findById(booking.service);
+      if (service) {
+        const bookingDateStr = new Date(booking.date).toDateString();
+
+        const existing = service.availability.find(
+          (a) => new Date(a.date).toDateString() === bookingDateStr
+        );
+
+        if (existing) {
+          existing.isAvailable = false;
+        } else {
+          service.availability.push({
+            date: booking.date,
+            isAvailable: false,
+          });
+        }
+        await service.save();
+      }
+    }
 
     res.json(booking);
   } catch (err) {

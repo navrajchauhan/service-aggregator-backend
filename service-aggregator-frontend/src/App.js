@@ -7,7 +7,7 @@ import Register from './components/Register';
 import AddService from './components/AddService';
 import MyServices from './components/MyServices';
 import MyBookings from './components/MyBookings';
-
+import EditService from './components/EditService';
 import './App.css';
 
 const Navbar = () => {
@@ -43,15 +43,10 @@ const Navbar = () => {
         {user ? (
           <>
             {user.role === 'provider' && (
-              <>
-                <Link to="/my-services" style={{ color: '#4cc9f0', textDecoration: 'none' }}>
-                  My Services
-                </Link>
-                <Link to="/add-service" style={{ color: '#4cc9f0', textDecoration: 'none' }}>
-                  + Add Service
-                </Link>
-              </>
-            )}
+  <Link to="/my-services" style={{ color: '#4cc9f0', textDecoration: 'none' }}>
+    My Services
+  </Link>
+)}
             <span>
               Hello, <strong>{user.name}</strong> ({user.role})
             </span>
@@ -98,6 +93,7 @@ function App() {
             <Route path="/add-service" element={<AddService />} />
             <Route path="/my-services" element={<MyServices />} />
             <Route path="/my-bookings" element={<MyBookings />} />
+            <Route path="/edit-service/:id" element={<EditService />} />
           </Routes>
         </div>
       </Router>

@@ -18,13 +18,19 @@ const ServiceList = () => {
         setServices(res.data);
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching services:', err.message);
         setLoading(false);
       }
     };
-
     fetchServices();
   }, []);
+
+  const isDateBlocked = (service, date) => {
+    if (!service.availability) return false;
+    const dateStr = new Date(date).toDateString();
+    return service.availability.some(
+      (a) => new Date(a.date).toDateString() === dateStr && a.isAvailable === false
+    );
+  };
 
   const handleBook = async () => {
     if (!bookingDate) {
@@ -32,18 +38,18 @@ const ServiceList = () => {
       return;
     }
 
+    if (isDateBlocked(bookingService, bookingDate)) {
+      setMessage('This date is already booked. Please choose another date.');
+      return;
+    }
+
     try {
       await axios.post(
         'http://localhost:5000/api/bookings',
-        {
-          serviceId: bookingService._id,
-          date: bookingDate,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { serviceId: bookingService._id, date: bookingDate },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      setMessage('Booking successful!');
+      setMessage('Booking request sent successfully!');
       setBookingService(null);
       setBookingDate('');
     } catch (err) {
@@ -52,9 +58,7 @@ const ServiceList = () => {
   };
 
   const filteredServices = services.filter((service) =>
-    filterType
-      ? service.serviceType.toLowerCase().includes(filterType.toLowerCase())
-      : true
+    filterType ? service.serviceType.toLowerCase().includes(filterType.toLowerCase()) : true
   );
 
   if (loading) return <p>Loading services...</p>;
@@ -74,9 +78,7 @@ const ServiceList = () => {
       </div>
 
       {message && (
-        <p style={{ color: message.includes('success') ? 'green' : 'red' }}>
-          {message}
-        </p>
+        <p style={{ color: message.includes('success') ? 'green' : 'red' }}>{message}</p>
       )}
 
       {filteredServices.length === 0 ? (
@@ -84,23 +86,13 @@ const ServiceList = () => {
       ) : (
         <div style={{ display: 'grid', gap: '20px' }}>
           {filteredServices.map((service) => (
-            <div
-              key={service._id}
-              style={{
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                padding: '20px',
-                background: '#f9f9f9',
-              }}
-            >
+            <div key={service._id} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '20px', background: '#f9f9f9' }}>
               <h3 style={{ margin: '0 0 8px 0' }}>
                 {service.providerName} — {service.serviceType}
               </h3>
 
               {service.description && (
-                <p style={{ margin: '0 0 10px 0', color: '#555' }}>
-                  {service.description}
-                </p>
+                <p style={{ margin: '0 0 10px 0', color: '#555' }}>{service.description}</p>
               )}
 
               <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '15px' }}>
@@ -109,18 +101,14 @@ const ServiceList = () => {
                 {service.contactNumber && <span><strong>Contact:</strong> {service.contactNumber}</span>}
               </div>
 
-              {/* Book Now button - only for logged-in consumers */}
               {user?.role === 'consumer' && (
                 <button
-                  onClick={() => setBookingService(service)}
-                  style={{
-                    background: '#1a1a2e',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
+                  onClick={() => {
+                    setBookingService(service);
+                    setBookingDate('');
+                    setMessage('');
                   }}
+                  style={{ background: '#1a1a2e', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}
                 >
                   Book Now
                 </button>
@@ -132,49 +120,29 @@ const ServiceList = () => {
 
       {/* Booking Modal */}
       {bookingService && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <div
-            style={{
-              background: 'white',
-              padding: '30px',
-              borderRadius: '10px',
-              width: '400px',
-            }}
-          >
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'white', padding: '30px', borderRadius: '10px', width: '400px' }}>
             <h3>Book: {bookingService.serviceType}</h3>
             <p>Provider: {bookingService.providerName}</p>
 
-            <label>Select Date:</label>
+            <label style={{ display: 'block', marginTop: '15px' }}>Select Date:</label>
             <input
               type="date"
               value={bookingDate}
               onChange={(e) => setBookingDate(e.target.value)}
-              style={{ width: '100%', padding: '8px', margin: '10px 0' }}
+              min={new Date().toISOString().split('T')[0]}
+              style={{ width: '100%', padding: '10px', margin: '10px 0' }}
             />
+
+            {bookingDate && isDateBlocked(bookingService, bookingDate) && (
+              <p style={{ color: 'red' }}>This date is already booked.</p>
+            )}
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
               <button
                 onClick={handleBook}
-                style={{
-                  background: '#1a1a2e',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
+                disabled={bookingDate && isDateBlocked(bookingService, bookingDate)}
+                style={{ background: '#1a1a2e', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
               >
                 Confirm Booking
               </button>
@@ -184,13 +152,7 @@ const ServiceList = () => {
                   setBookingDate('');
                   setMessage('');
                 }}
-                style={{
-                  background: '#ccc',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
+                style={{ background: '#ccc', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
               >
                 Cancel
               </button>

@@ -98,19 +98,35 @@ const MyServices = () => {
                 {service.contactNumber && <span><strong>Contact:</strong> {service.contactNumber}</span>}
               </div>
 
-              <button
-                onClick={() => handleDelete(service._id)}
-                style={{
-                  background: '#e94560',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                Delete
-              </button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <Link
+                  to={`/edit-service/${service._id}`}
+                  style={{
+                    background: '#4cc9f0',
+                    color: '#1a1a2e',
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    textDecoration: 'none',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  Edit
+                </Link>
+
+                <button
+                  onClick={() => handleDelete(service._id)}
+                  style={{
+                    background: '#e94560',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>

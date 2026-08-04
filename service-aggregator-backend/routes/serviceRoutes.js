@@ -72,4 +72,87 @@ router.delete('/:id', auth, isProvider, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Update a service (only the owner can update)
+router.put('/:id', auth, isProvider, async (req, res) => {
+  try {
+    const service = await Service.findById(req.params.id);
+
+    if (!service) {
+      return res.status(404).json({ error: 'Service not found' });
+    }
+
+    // Check ownership
+    if (service.provider.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized to update this service' });
+    }
+
+    // Update fields
+    const { serviceType, description, price, location, contactNumber } = req.body;
+
+    if (serviceType) service.serviceType = serviceType;
+    if (description !== undefined) service.description = description;
+    if (price !== undefined) service.price = price;
+    if (location !== undefined) service.location = location;
+    if (contactNumber !== undefined) service.contactNumber = contactNumber;
+
+    const updated = await service.save();
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Add availability date
+// Block a date (mark as unavailable)
+router.post('/:id/block-date', auth, isProvider, async (req, res) => {
+  try {
+    const service = await Service.findById(req.params.id);
+    if (!service) return res.status(404).json({ error: 'Service not found' });
+
+    if (service.provider.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const { date } = req.body;
+    if (!date) return res.status(400).json({ error: 'Date is required' });
+
+    const dateStr = new Date(date).toDateString();
+    const existing = service.availability.find(
+      (a) => new Date(a.date).toDateString() === dateStr
+    );
+
+    if (existing) {
+      existing.isAvailable = false;
+    } else {
+      service.availability.push({ date, isAvailable: false });
+    }
+
+    await service.save();
+    res.json(service);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Unblock a date (make available again)
+router.delete('/:id/block-date/:dateId', auth, isProvider, async (req, res) => {
+  try {
+    const service = await Service.findById(req.params.id);
+    if (!service) return res.status(404).json({ error: 'Service not found' });
+
+    if (service.provider.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    service.availability = service.availability.filter(
+      (a) => a._id.toString() !== req.params.dateId
+    );
+
+    await service.save();
+    res.json(service);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
 module.exports = router;
