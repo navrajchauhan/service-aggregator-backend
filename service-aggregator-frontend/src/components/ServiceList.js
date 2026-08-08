@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 import { AuthContext } from '../context/AuthContext';
 
 const ServiceList = () => {
@@ -8,7 +11,7 @@ const ServiceList = () => {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('');
   const [bookingService, setBookingService] = useState(null);
-  const [bookingDate, setBookingDate] = useState('');
+  const [bookingDate, setBookingDate] = useState(null);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -24,12 +27,63 @@ const ServiceList = () => {
     fetchServices();
   }, []);
 
+  // Inject calendar styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .react-calendar__tile {
+        background-color: white !important;
+        color: #333 !important;
+        border-radius: 6px !important;
+      }
+      .react-calendar__tile:enabled:hover {
+        background-color: #f0f0f0 !important;
+      }
+      .react-calendar__tile.blocked-date {
+        background-color: #ef5350 !important;
+        color: white !important;
+        font-weight: 600 !important;
+      }
+      .react-calendar__tile.blocked-date:enabled:hover {
+        background-color: #e53935 !important;
+        color: white !important;
+      }
+      .react-calendar__tile--active {
+        background-color: #1a1a2e !important;
+        color: white !important;
+      }
+      .react-calendar__tile--now {
+        background-color: #fff9c4 !important;
+        border: 2px solid #fbc02d !important;
+      }
+      .react-calendar__tile--now.blocked-date {
+        background-color: #ef5350 !important;
+        border: 2px solid #c62828 !important;
+        color: white !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
   const isDateBlocked = (service, date) => {
-    if (!service.availability) return false;
-    const dateStr = new Date(date).toDateString();
-    return service.availability.some(
-      (a) => new Date(a.date).toDateString() === dateStr && a.isAvailable === false
-    );
+    if (!service?.availability || !date) return false;
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+
+    return service.availability.some((a) => {
+      if (a.isAvailable !== false) return false;
+      const blocked = new Date(a.date);
+      blocked.setHours(0, 0, 0, 0);
+      return blocked.getTime() === checkDate.getTime();
+    });
+  };
+
+  const tileClassName = (service) => ({ date, view }) => {
+    if (view === 'month' && isDateBlocked(service, date)) {
+      return 'blocked-date';
+    }
+    return null;
   };
 
   const handleBook = async () => {
@@ -37,9 +91,8 @@ const ServiceList = () => {
       setMessage('Please select a date');
       return;
     }
-
     if (isDateBlocked(bookingService, bookingDate)) {
-      setMessage('This date is already booked. Please choose another date.');
+      setMessage('This date is already booked');
       return;
     }
 
@@ -51,51 +104,59 @@ const ServiceList = () => {
       );
       setMessage('Booking request sent successfully!');
       setBookingService(null);
-      setBookingDate('');
+      setBookingDate(null);
     } catch (err) {
       setMessage(err.response?.data?.error || 'Booking failed');
     }
   };
 
   const filteredServices = services.filter((service) =>
-    filterType ? service.serviceType.toLowerCase().includes(filterType.toLowerCase()) : true
+    filterType
+      ? service.serviceType.toLowerCase().includes(filterType.toLowerCase())
+      : true
   );
 
   if (loading) return <p>Loading services...</p>;
 
   return (
     <div>
-      <h2>All Services</h2>
+      <h2 style={{ marginBottom: '20px' }}>All Services</h2>
 
-      <div style={{ marginBottom: '20px' }}>
+      <div className="filter-bar">
         <input
           type="text"
           placeholder="Filter by service type..."
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          style={{ padding: '8px', width: '250px' }}
         />
       </div>
 
       {message && (
-        <p style={{ color: message.includes('success') ? 'green' : 'red' }}>{message}</p>
+        <p style={{ color: message.includes('success') ? 'green' : 'red', marginBottom: '15px' }}>
+          {message}
+        </p>
       )}
 
       {filteredServices.length === 0 ? (
         <p>No services found.</p>
       ) : (
-        <div style={{ display: 'grid', gap: '20px' }}>
+        <div className="services-grid">
           {filteredServices.map((service) => (
-            <div key={service._id} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '20px', background: '#f9f9f9' }}>
-              <h3 style={{ margin: '0 0 8px 0' }}>
-                {service.providerName} — {service.serviceType}
+            <div key={service._id} className="service-card">
+              <h3>
+                <Link
+                  to={`/service/${service._id}`}
+                  style={{ color: '#1a1a2e', textDecoration: 'none' }}
+                >
+                  {service.providerName} — {service.serviceType}
+                </Link>
               </h3>
 
               {service.description && (
-                <p style={{ margin: '0 0 10px 0', color: '#555' }}>{service.description}</p>
+                <p style={{ color: '#555', marginBottom: '10px' }}>{service.description}</p>
               )}
 
-              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '15px' }}>
+              <div className="service-meta">
                 {service.price && <span><strong>Price:</strong> ₹{service.price}</span>}
                 {service.location && <span><strong>Location:</strong> {service.location}</span>}
                 {service.contactNumber && <span><strong>Contact:</strong> {service.contactNumber}</span>}
@@ -103,12 +164,12 @@ const ServiceList = () => {
 
               {user?.role === 'consumer' && (
                 <button
+                  className="primary-btn"
                   onClick={() => {
                     setBookingService(service);
-                    setBookingDate('');
+                    setBookingDate(null);
                     setMessage('');
                   }}
-                  style={{ background: '#1a1a2e', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}
                 >
                   Book Now
                 </button>
@@ -118,41 +179,61 @@ const ServiceList = () => {
         </div>
       )}
 
-      {/* Booking Modal */}
+      {/* Booking Modal with react-calendar */}
       {bookingService && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', padding: '30px', borderRadius: '10px', width: '400px' }}>
+        <div className="modal-overlay">
+          <div className="modal-content">
             <h3>Book: {bookingService.serviceType}</h3>
-            <p>Provider: {bookingService.providerName}</p>
+            <p style={{ margin: '8px 0 16px' }}>Provider: {bookingService.providerName}</p>
 
-            <label style={{ display: 'block', marginTop: '15px' }}>Select Date:</label>
-            <input
-              type="date"
-              value={bookingDate}
-              onChange={(e) => setBookingDate(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
-              style={{ width: '100%', padding: '10px', margin: '10px 0' }}
-            />
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ marginBottom: '8px', fontWeight: 500 }}>Select a date:</p>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '10px' }}>
+                <span style={{ color: '#333' }}>■ White</span> = Available &nbsp;&nbsp;
+                <span style={{ color: '#ef5350' }}>■ Red</span> = Booked / Blocked
+              </p>
+
+              <Calendar
+                onChange={setBookingDate}
+                value={bookingDate}
+                tileClassName={tileClassName(bookingService)}
+                minDate={new Date()}
+              />
+            </div>
 
             {bookingDate && isDateBlocked(bookingService, bookingDate) && (
-              <p style={{ color: 'red' }}>This date is already booked.</p>
+              <p style={{ color: 'red', marginBottom: '12px' }}>
+                This date is already booked. Please select another date.
+              </p>
             )}
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+            {bookingDate && !isDateBlocked(bookingService, bookingDate) && (
+              <p style={{ color: 'green', marginBottom: '12px' }}>
+                Selected: {bookingDate.toLocaleDateString()}
+              </p>
+            )}
+
+            <div className="form-actions">
               <button
+                className="primary-btn"
                 onClick={handleBook}
-                disabled={bookingDate && isDateBlocked(bookingService, bookingDate)}
-                style={{ background: '#1a1a2e', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
+                disabled={!bookingDate || isDateBlocked(bookingService, bookingDate)}
               >
                 Confirm Booking
               </button>
               <button
                 onClick={() => {
                   setBookingService(null);
-                  setBookingDate('');
+                  setBookingDate(null);
                   setMessage('');
                 }}
-                style={{ background: '#ccc', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '5px',
+                  border: '1px solid #ccc',
+                  background: '#f5f5f5',
+                  cursor: 'pointer',
+                }}
               >
                 Cancel
               </button>
