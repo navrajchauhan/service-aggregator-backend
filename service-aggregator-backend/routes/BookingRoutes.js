@@ -24,8 +24,15 @@ router.post('/', auth, async (req, res) => {
       provider: service.provider,
       date,
     });
+    const Notification = require('../models/Notification'); 
 
     const saved = await booking.save();
+    await Notification.create({
+      recipient: service.provider,
+      message: `New booking request for "${service.serviceType}" on ${new Date(date).toLocaleDateString()}`,
+      type: 'booking_request',
+      relatedBooking: saved._id,
+    });
     res.status(201).json(saved);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -56,7 +63,6 @@ router.get('/my-bookings', auth, async (req, res) => {
 });
 
 // Update booking status (Provider can confirm/cancel)
-// Update booking status (Provider can confirm/cancel)
 router.patch('/:id/status', auth, async (req, res) => {
   try {
     const { status } = req.body;
@@ -76,7 +82,24 @@ router.patch('/:id/status', auth, async (req, res) => {
 
     booking.status = status;
     await booking.save();
+    const message =
+  status === 'confirmed'
+    ? `Your booking for "${booking.service}" has been confirmed`
+    : `Your booking has been cancelled by the provider`;
 
+    // Better message (we need service name)
+    const serviceDoc = await Service.findById(booking.service);
+    const serviceName = serviceDoc ? serviceDoc.serviceType : 'the service';
+
+    await Notification.create({
+      recipient: booking.consumer,
+      message:
+        status === 'confirmed'
+          ? `Your booking for "${serviceName}" has been confirmed!`
+          : `Your booking for "${serviceName}" has been cancelled by the provider.`,
+      type: status === 'confirmed' ? 'booking_confirmed' : 'booking_cancelled',
+      relatedBooking: booking._id,
+    });
     // When confirmed → block that date
     if (status === 'confirmed') {
       const service = await Service.findById(booking.service);

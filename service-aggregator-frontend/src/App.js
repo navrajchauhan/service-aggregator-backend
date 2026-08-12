@@ -9,6 +9,7 @@ import MyServices from './components/MyServices';
 import EditService from './components/EditService';
 import MyBookings from './components/MyBookings';
 import ServiceDetail from './components/ServiceDetail';
+import NotificationBell from './components/NotificationBell';
 import './App.css';
 
 const Navbar = () => {
@@ -30,6 +31,7 @@ const Navbar = () => {
             <span className="nav-text">
               Hello, <strong>{user.name}</strong>
             </span>
+            {user && <NotificationBell />}
             <button onClick={logout} className="logout-btn">
               Logout
             </button>

@@ -116,7 +116,13 @@ const ServiceList = () => {
       : true
   );
 
-  if (loading) return <p>Loading services...</p>;
+  if (loading) {
+  return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <p style={{ fontSize: '1.1rem', color: '#666' }}>Loading services...</p>
+    </div>
+  );
+}
 
   return (
     <div>
@@ -138,8 +144,15 @@ const ServiceList = () => {
       )}
 
       {filteredServices.length === 0 ? (
-        <p>No services found.</p>
-      ) : (
+          <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '10px' }}>
+            <h3 style={{ marginBottom: '8px' }}>No services found</h3>
+            <p style={{ color: '#666' }}>
+              {filterType
+                ? `No services match “${filterType}”. Try a different filter.`
+                : 'No services have been added yet. Check back later.'}
+            </p>
+          </div>
+        ): (
         <div className="services-grid">
           {filteredServices.map((service) => (
             <div key={service._id} className="service-card">

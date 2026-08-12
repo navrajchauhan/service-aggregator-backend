@@ -45,10 +45,37 @@ const MyServices = () => {
     }
   };
 
-  if (!user) return <p>Please login first.</p>;
-  if (user.role !== 'provider') return <p>Only providers can view this page.</p>;
-  if (loading) return <p>Loading your services...</p>;
-  if (error) return <p style={{ color: 'red' }}>{error}</p>;
+  if (!user) {
+  return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <p>Please login first.</p>
+    </div>
+  );
+}
+
+if (user.role !== 'provider') {
+  return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <p>Only providers can view this page.</p>
+    </div>
+  );
+}
+
+if (loading) {
+  return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <p style={{ fontSize: '1.1rem', color: '#666' }}>Loading your services...</p>
+    </div>
+  );
+}
+
+if (error) {
+  return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <p style={{ color: 'red' }}>{error}</p>
+    </div>
+  );
+}
 
   return (
     <div>
@@ -69,8 +96,20 @@ const MyServices = () => {
       </div>
 
       {services.length === 0 ? (
-        <p>You haven't added any services yet.</p>
-      ) : (
+      <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '10px' }}>
+        <h3 style={{ marginBottom: '10px' }}>No services yet</h3>
+        <p style={{ color: '#666', marginBottom: '20px' }}>
+          You haven’t added any services. Create your first one!
+        </p>
+        <Link
+          to="/add-service"
+          className="primary-btn"
+          style={{ display: 'inline-block', textDecoration: 'none' }}
+        >
+          + Add New Service
+        </Link>
+      </div>
+    ) : (
         <div style={{ display: 'grid', gap: '20px' }}>
           {services.map((service) => (
             <div

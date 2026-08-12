@@ -131,9 +131,24 @@ useEffect(() => {
     }
   };
 
-  if (loading) return <p>Loading service details...</p>;
-  if (error) return <p style={{ color: 'red' }}>{error}</p>;
-  if (!service) return null;
+  if (loading) {
+  return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <p style={{ fontSize: '1.1rem', color: '#666' }}>Loading service details...</p>
+    </div>
+  );
+}
+
+if (error) {
+  return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <p style={{ color: 'red' }}>{error}</p>
+      <button onClick={() => navigate(-1)} style={{ marginTop: '15px' }} className="primary-btn">
+        Go Back
+      </button>
+    </div>
+  );
+}
 
   return (
     <div>

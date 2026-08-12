@@ -40,15 +40,35 @@ const MyBookings = () => {
     }
   };
 
-  if (!user) return <p>Please login first.</p>;
-  if (loading) return <p>Loading bookings...</p>;
+  if (!user) {
+  return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <p>Please login first.</p>
+    </div>
+  );
+  }
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <p style={{ fontSize: '1.1rem', color: '#666' }}>Loading bookings...</p>
+      </div>
+    );
+  }
 
   return (
     <div>
       <h2>My Bookings</h2>
 
       {bookings.length === 0 ? (
-        <p>No bookings found.</p>
+        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '10px' }}>
+          <h3 style={{ marginBottom: '10px' }}>No bookings yet</h3>
+          <p style={{ color: '#666' }}>
+            {user.role === 'consumer'
+              ? 'You haven’t booked any services yet.'
+              : 'You have no booking requests at the moment.'}
+          </p>
+        </div>
       ) : (
         <div style={{ display: 'grid', gap: '15px' }}>
           {bookings.map((booking) => (
