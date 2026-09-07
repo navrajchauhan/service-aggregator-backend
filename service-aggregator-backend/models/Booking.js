@@ -29,6 +29,10 @@ const bookingSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  cancellationReason: {
+  type: String,
+  default: null,
+},
 });
 
 module.exports = mongoose.model('Booking', bookingSchema);

@@ -66,13 +66,40 @@ router.delete('/:id', auth, isProvider, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to delete this service' });
     }
 
+    const Booking = require('../models/Booking');
+    const Notification = require('../models/Notification');
+
+    // Find all bookings related to this service
+    const relatedBookings = await Booking.find({ service: service._id });
+
+    // Cancel all related bookings and notify consumers
+    for (const booking of relatedBookings) {
+      // Only update if not already cancelled
+      if (booking.status !== 'cancelled') {
+        booking.status = 'cancelled';
+        booking.cancellationReason = 'Service no longer exists';
+        await booking.save();
+
+        // Notify the consumer
+        await Notification.create({
+          recipient: booking.consumer,
+          message: `Your booking for "${service.serviceType}" has been cancelled because the service no longer exists.`,
+          type: 'booking_cancelled',
+          relatedBooking: booking._id,
+        });
+      }
+    }
+
+    // Finally delete the service
     await service.deleteOne();
-    res.json({ message: 'Service deleted successfully' });
+
+    res.json({ 
+      message: 'Service deleted successfully. Related bookings have been cancelled.' 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 // Update a service (only the owner can update)
 router.put('/:id', auth, isProvider, async (req, res) => {
   try {
