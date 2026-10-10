@@ -7,7 +7,7 @@ const EditService = () => {
   const { id } = useParams();
   const { user, token } = useContext(AuthContext);
   const navigate = useNavigate();
-
+  
   const [formData, setFormData] = useState({
     serviceType: '',
     description: '',
@@ -15,7 +15,7 @@ const EditService = () => {
     location: '',
     contactNumber: '',
   });
-
+  const [image, setImage] = useState(null);
   const [blockedDates, setBlockedDates] = useState([]);
   const [newDate, setNewDate] = useState('');
   const [loading, setLoading] = useState(true);
@@ -45,6 +45,7 @@ const EditService = () => {
           price: service.price || '',
           location: service.location || '',
           contactNumber: service.contactNumber || '',
+          image: service.image || '',
         });
 
         // Only keep dates that are blocked
@@ -65,20 +66,35 @@ const EditService = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
+  e.preventDefault();
+  setError('');
+  setSuccess('');
 
-    try {
-      await axios.put(`http://localhost:5000/api/services/${id}`, formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setSuccess('Service updated successfully!');
-      setTimeout(() => navigate('/my-services'), 1200);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update service');
+  try {
+    const data = new FormData();
+    data.append('serviceType', formData.serviceType);
+    data.append('description', formData.description);
+    data.append('price', formData.price);
+    data.append('location', formData.location);
+    data.append('contactNumber', formData.contactNumber);
+
+    if (image) {
+      data.append('image', image);
     }
-  };
+
+    await axios.put(`http://localhost:5000/api/services/${id}`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    setSuccess('Service updated successfully!');
+    setTimeout(() => navigate('/my-services'), 1200);
+  } catch (err) {
+    setError(err.response?.data?.error || 'Failed to update service');
+  }
+};
 
   const handleBlockDate = async () => {
     if (!newDate) {
@@ -161,6 +177,34 @@ const EditService = () => {
           <button type="button" onClick={() => navigate('/my-services')} style={{ padding: '10px 20px', background: '#ccc', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
             Cancel
           </button>
+        </div>
+
+        {/* Show current image if it exists */}
+        {formData.image && (
+          <div style={{ marginBottom: '15px' }}>
+            <p style={{ marginBottom: '6px' }}>Current Image:</p>
+            <img
+              src={formData.image}
+              alt="Current"
+              style={{
+                width: '100%',
+                maxHeight: '200px',
+                objectFit: 'cover',
+                borderRadius: '8px',
+              }}
+            />
+          </div>
+        )}
+
+        {/* Upload new image */}
+        <div style={{ marginBottom: '15px' }}>
+          <label>Change Image</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files[0])}
+            style={{ width: '100%', padding: '8px' }}
+          />
         </div>
       </form>
 

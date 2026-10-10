@@ -18,8 +18,13 @@ const ServiceSchema = new mongoose.Schema({
       isAvailable: { type: Boolean, default: true }
     }
   ],
+  image: {
+  type: String, // will store Cloudinary URL
+  default: '',
+},
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
+  
 });
 
 module.exports = mongoose.model('Service', ServiceSchema);

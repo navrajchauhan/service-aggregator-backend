@@ -168,7 +168,19 @@ const ServiceList = () => {
               {service.description && (
                 <p style={{ color: '#555', marginBottom: '10px' }}>{service.description}</p>
               )}
-
+              {service.image && (
+                <img
+                  src={service.image}
+                  alt={service.serviceType}
+                  style={{
+                    width: '100%',
+                    height: '180px',
+                    objectFit: 'cover',
+                    borderRadius: '8px',
+                    marginBottom: '12px',
+                  }}
+                />
+              )}
               <div className="service-meta">
                 {service.price && <span><strong>Price:</strong> ₹{service.price}</span>}
                 {service.location && <span><strong>Location:</strong> {service.location}</span>}

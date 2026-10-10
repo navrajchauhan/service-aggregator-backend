@@ -2,14 +2,16 @@ const express = require('express');
 const router = express.Router();
 const Service = require('../models/Service');
 const { auth, isProvider } = require('../middleware/auth');
+const { upload } = require('../config/cloudinary');
 
 // Create a new service (Only logged-in Providers)
-router.post('/', auth, isProvider, async (req, res) => {
+router.post('/', auth, isProvider, upload.single('image'), async (req, res) => {
   try {
     const service = new Service({
       ...req.body,
       provider: req.user._id,
-      providerName: req.user.name   // automatically take name from logged-in user
+      providerName: req.user.name,
+      image: req.file ? req.file.path : '',
     });
 
     const saved = await service.save();
@@ -18,7 +20,6 @@ router.post('/', auth, isProvider, async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-
 // Get all services (public)
 router.get('/', async (req, res) => {
   try {
@@ -101,7 +102,7 @@ router.delete('/:id', auth, isProvider, async (req, res) => {
   }
 });
 // Update a service (only the owner can update)
-router.put('/:id', auth, isProvider, async (req, res) => {
+router.put('/:id', auth, isProvider, upload.single('image'), async (req, res) => {
   try {
     const service = await Service.findById(req.params.id);
 
@@ -109,12 +110,10 @@ router.put('/:id', auth, isProvider, async (req, res) => {
       return res.status(404).json({ error: 'Service not found' });
     }
 
-    // Check ownership
     if (service.provider.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Not authorized to update this service' });
+      return res.status(403).json({ error: 'Not authorized' });
     }
 
-    // Update fields
     const { serviceType, description, price, location, contactNumber } = req.body;
 
     if (serviceType) service.serviceType = serviceType;
@@ -122,6 +121,11 @@ router.put('/:id', auth, isProvider, async (req, res) => {
     if (price !== undefined) service.price = price;
     if (location !== undefined) service.location = location;
     if (contactNumber !== undefined) service.contactNumber = contactNumber;
+
+    // Update image only if a new one is uploaded
+    if (req.file) {
+      service.image = req.file.path;
+    }
 
     const updated = await service.save();
     res.json(updated);

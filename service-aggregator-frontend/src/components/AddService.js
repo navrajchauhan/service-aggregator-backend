@@ -14,7 +14,7 @@ const AddService = () => {
     location: '',
     contactNumber: '',
   });
-
+  const [image, setImage] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -32,35 +32,37 @@ const AddService = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
+  e.preventDefault();
+  setError('');
+  setSuccess('');
 
-    try {
-      await axios.post(
-        'http://localhost:5000/api/services',
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+  try {
+    // FormData is required when sending files
+    const data = new FormData();
+    data.append('serviceType', formData.serviceType);
+    data.append('description', formData.description);
+    data.append('price', formData.price);
+    data.append('location', formData.location);
+    data.append('contactNumber', formData.contactNumber);
 
-      setSuccess('Service added successfully!');
-      setFormData({
-        serviceType: '',
-        description: '',
-        price: '',
-        location: '',
-        contactNumber: '',
-      });
-
-      setTimeout(() => navigate('/'), 1500);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to add service');
+    // Only add image if user selected one
+    if (image) {
+      data.append('image', image);
     }
-  };
+
+    await axios.post('http://localhost:5000/api/services', data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    setSuccess('Service added successfully!');
+    setTimeout(() => navigate('/my-services'), 1200);
+  } catch (err) {
+    setError(err.response?.data?.error || 'Failed to add service');
+  }
+};
 
   return (
     <div style={{ maxWidth: '500px', margin: '40px auto' }}>
@@ -69,6 +71,15 @@ const AddService = () => {
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {success && <p style={{ color: 'green' }}>{success}</p>}
 
+      <div style={{ marginBottom: '15px' }}>
+        <label>Service Image</label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setImage(e.target.files[0])}
+          style={{ width: '100%', padding: '8px' }}
+        />
+      </div>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '15px' }}>
           <label>Service Type (e.g. Caterer, Florist, Photographer)</label>
@@ -125,7 +136,15 @@ const AddService = () => {
             style={{ width: '100%', padding: '8px' }}
           />
         </div>
-
+        <div style={{ marginBottom: '15px' }}>
+        <label>Service Image</label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setImage(e.target.files[0])}
+          style={{ width: '100%', padding: '8px' }}
+        />
+      </div>
         <button
           type="submit"
           style={{
