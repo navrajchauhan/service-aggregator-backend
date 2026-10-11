@@ -168,9 +168,9 @@ const ServiceList = () => {
               {service.description && (
                 <p style={{ color: '#555', marginBottom: '10px' }}>{service.description}</p>
               )}
-              {service.image && (
+              {((service.images && service.images.length > 0) || service.image) && (
                 <img
-                  src={service.image}
+                  src={service.images?.[0] || service.image}
                   alt={service.serviceType}
                   style={{
                     width: '100%',

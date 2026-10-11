@@ -178,18 +178,41 @@ if (error) {
             <p style={{ color: '#555' }}>{service.description}</p>
           </div>
         )}
-        {service.image && (
-          <img
-            src={service.image}
-            alt={service.serviceType}
-            style={{
-              width: '100%',
-              height: '180px',
-              objectFit: 'cover',
-              borderRadius: '8px',
-              marginBottom: '12px',
-            }}
-          />
+        {((service.images && service.images.length > 0) || service.image) && (
+          <div style={{ marginBottom: '24px' }}>
+            <div
+              style={{
+                display: 'flex',
+                overflowX: 'auto',
+                gap: '12px',
+                paddingBottom: '8px',
+              }}
+            >
+              {(service.images && service.images.length > 0
+                ? service.images
+                : [service.image]
+              ).map((img, index) => (
+                <img
+                  key={index}
+                  src={img}
+                  alt={`${service.serviceType} ${index + 1}`}
+                  style={{
+                    width: '100%',
+                    maxWidth: '420px',
+                    height: '260px',
+                    objectFit: 'cover',
+                    borderRadius: '10px',
+                    flexShrink: 0,
+                  }}
+                />
+              ))}
+            </div>
+            {service.images?.length > 1 && (
+              <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '6px' }}>
+                Scroll to see more images →
+              </p>
+            )}
+          </div>
         )}
         <div className="service-meta" style={{ marginBottom: '28px' }}>
           {service.price && <span><strong>Price:</strong> ₹{service.price}</span>}

@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const NotificationBell = () => {
   const { token } = useContext(AuthContext);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   const fetchNotifications = async () => {
     try {
@@ -147,7 +149,11 @@ const NotificationBell = () => {
             notifications.map((n) => (
               <div
                 key={n._id}
-                onClick={() => !n.isRead && markAsRead(n._id)}
+                onClick={() => {
+                  if (!n.isRead) markAsRead(n._id);
+                  setOpen(false);
+                  navigate('/my-bookings');
+                }}
                 style={{
                   padding: '12px 16px',
                   borderBottom: '1px solid #f0f0f0',
@@ -160,6 +166,7 @@ const NotificationBell = () => {
                   {new Date(n.createdAt).toLocaleString()}
                 </small>
               </div>
+                
             ))
           )}
         </div>

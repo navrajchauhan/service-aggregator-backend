@@ -14,7 +14,7 @@ const AddService = () => {
     location: '',
     contactNumber: '',
   });
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -40,26 +40,27 @@ const AddService = () => {
     // FormData is required when sending files
     const data = new FormData();
     data.append('serviceType', formData.serviceType);
-    data.append('description', formData.description);
-    data.append('price', formData.price);
-    data.append('location', formData.location);
-    data.append('contactNumber', formData.contactNumber);
+    data.append('description', formData.description || '');
+    data.append('price', formData.price || '');
+    data.append('location', formData.location || '');
+    data.append('contactNumber', formData.contactNumber || '');
 
     // Only add image if user selected one
-    if (image) {
-      data.append('image', image);
-    }
+    images.forEach((file) => {
+  data.append('images', file);
+});
 
-    await axios.post('http://localhost:5000/api/services', data, {
+   const res = await axios.post('http://localhost:5000/api/services', data, {
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
+        // 'Content-Type': 'multipart/form-data',
       },
     });
 
     setSuccess('Service added successfully!');
     setTimeout(() => navigate('/my-services'), 1200);
   } catch (err) {
+    console.error(err.response?.data || err.message);
     setError(err.response?.data?.error || 'Failed to add service');
   }
 };
@@ -71,15 +72,7 @@ const AddService = () => {
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {success && <p style={{ color: 'green' }}>{success}</p>}
 
-      <div style={{ marginBottom: '15px' }}>
-        <label>Service Image</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setImage(e.target.files[0])}
-          style={{ width: '100%', padding: '8px' }}
-        />
-      </div>
+      
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '15px' }}>
           <label>Service Type (e.g. Caterer, Florist, Photographer)</label>
@@ -137,14 +130,17 @@ const AddService = () => {
           />
         </div>
         <div style={{ marginBottom: '15px' }}>
-        <label>Service Image</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setImage(e.target.files[0])}
-          style={{ width: '100%', padding: '8px' }}
-        />
-      </div>
+          <label>Service Images (max 5)</label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => {const files = Array.from(e.target.files||[]);
+            setImages(files);
+            }}
+            style={{ width: '100%', padding: '8px' }}
+          />
+        </div>
         <button
           type="submit"
           style={{

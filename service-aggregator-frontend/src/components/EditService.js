@@ -14,8 +14,9 @@ const EditService = () => {
     price: '',
     location: '',
     contactNumber: '',
+    images: [],
   });
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
   const [blockedDates, setBlockedDates] = useState([]);
   const [newDate, setNewDate] = useState('');
   const [loading, setLoading] = useState(true);
@@ -45,7 +46,7 @@ const EditService = () => {
           price: service.price || '',
           location: service.location || '',
           contactNumber: service.contactNumber || '',
-          image: service.image || '',
+          image: service.image || [],
         });
 
         // Only keep dates that are blocked
@@ -73,25 +74,26 @@ const EditService = () => {
   try {
     const data = new FormData();
     data.append('serviceType', formData.serviceType);
-    data.append('description', formData.description);
-    data.append('price', formData.price);
-    data.append('location', formData.location);
-    data.append('contactNumber', formData.contactNumber);
+    data.append('description', formData.description || '');
+    data.append('price', formData.price || '');
+    data.append('location', formData.location || '');
+    data.append('contactNumber', formData.contactNumber || '');
 
-    if (image) {
-      data.append('image', image);
-    }
+    images.forEach((file) => {
+      data.append('images', file);
+    });
 
     await axios.put(`http://localhost:5000/api/services/${id}`, data, {
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
+        
       },
     });
 
     setSuccess('Service updated successfully!');
     setTimeout(() => navigate('/my-services'), 1200);
   } catch (err) {
+    console.error('Edit error:', err.response?.data || err.message);
     setError(err.response?.data?.error || 'Failed to update service');
   }
 };
@@ -179,33 +181,40 @@ const EditService = () => {
           </button>
         </div>
 
-        {/* Show current image if it exists */}
-        {formData.image && (
-          <div style={{ marginBottom: '15px' }}>
-            <p style={{ marginBottom: '6px' }}>Current Image:</p>
-            <img
-              src={formData.image}
-              alt="Current"
-              style={{
-                width: '100%',
-                maxHeight: '200px',
-                objectFit: 'cover',
-                borderRadius: '8px',
-              }}
-            />
-          </div>
-        )}
-
-        {/* Upload new image */}
+        {/* Show current images */}
+      {formData.images && formData.images.length > 0 && (
         <div style={{ marginBottom: '15px' }}>
-          <label>Change Image</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImage(e.target.files[0])}
-            style={{ width: '100%', padding: '8px' }}
-          />
+          <p style={{ marginBottom: '8px' }}>Current Images:</p>
+          <div style={{ display: 'flex', gap: '10px', overflowX: 'auto' }}>
+            {formData.images.map((img, index) => (
+              <img
+                key={index}
+                src={img}
+                alt={`Current ${index + 1}`}
+                style={{
+                  width: '120px',
+                  height: '90px',
+                  objectFit: 'cover',
+                  borderRadius: '6px',
+                  flexShrink: 0,
+                }}
+              />
+            ))}
+          </div>
         </div>
+      )}
+
+      {/* Upload new images */}
+      <div style={{ marginBottom: '15px' }}>
+        <label>Upload New Images (max 5) — this will replace old ones</label>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => setImages(Array.from(e.target.files))}
+          style={{ width: '100%', padding: '8px' }}
+        />
+      </div>
       </form>
 
       {/* Blocked Dates Section */}

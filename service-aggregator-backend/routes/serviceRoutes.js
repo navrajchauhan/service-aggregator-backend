@@ -5,19 +5,24 @@ const { auth, isProvider } = require('../middleware/auth');
 const { upload } = require('../config/cloudinary');
 
 // Create a new service (Only logged-in Providers)
-router.post('/', auth, isProvider, upload.single('image'), async (req, res) => {
+router.post('/', auth, isProvider, upload.array('images', 5), async (req, res) => {
   try {
+    console.log('BODY:', req.body);
+    console.log('FILES:', req.files);
+    const imageUrls = req.files ? req.files.map(file => file.path) : [];
+
     const service = new Service({
       ...req.body,
       provider: req.user._id,
       providerName: req.user.name,
-      image: req.file ? req.file.path : '',
+      images: imageUrls,
     });
 
     const saved = await service.save();
     res.status(201).json(saved);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error('Upload Error:', err);
+    res.status(400).json({ error: err.message || 'Image upload failed' });
   }
 });
 // Get all services (public)
@@ -101,39 +106,47 @@ router.delete('/:id', auth, isProvider, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Update a service (only the owner can update)
-router.put('/:id', auth, isProvider, upload.single('image'), async (req, res) => {
-  try {
-    const service = await Service.findById(req.params.id);
-
-    if (!service) {
-      return res.status(404).json({ error: 'Service not found' });
+router.put('/:id', auth, isProvider, (req, res) => {
+  upload.array('images', 5)(req, res, async (err) => {
+    if (err) {
+      console.error('UPLOAD ERROR:', err);
+      return res.status(400).json({ error: err.message || 'Image upload failed' });
     }
 
-    if (service.provider.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Not authorized' });
+    try {
+      console.log('EDIT BODY:', req.body);
+      console.log('EDIT FILES:', JSON.stringify(req.files, null, 2));
+
+      const service = await Service.findById(req.params.id);
+
+      if (!service) {
+        return res.status(404).json({ error: 'Service not found' });
+      }
+
+      if (service.provider.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ error: 'Not authorized' });
+      }
+
+      // Update text fields
+      if (req.body.serviceType) service.serviceType = req.body.serviceType;
+      if (req.body.description !== undefined) service.description = req.body.description;
+      if (req.body.price !== undefined) service.price = req.body.price;
+      if (req.body.location !== undefined) service.location = req.body.location;
+      if (req.body.contactNumber !== undefined) service.contactNumber = req.body.contactNumber;
+
+      // If new images uploaded, replace old ones
+      if (req.files && req.files.length > 0) {
+        service.images = req.files.map((file) => file.path);
+      }
+
+      const updated = await service.save();
+      res.json(updated);
+    } catch (error) {
+      console.error('EDIT SERVICE ERROR:', error);
+      res.status(400).json({ error: error.message || 'Failed to update service' });
     }
-
-    const { serviceType, description, price, location, contactNumber } = req.body;
-
-    if (serviceType) service.serviceType = serviceType;
-    if (description !== undefined) service.description = description;
-    if (price !== undefined) service.price = price;
-    if (location !== undefined) service.location = location;
-    if (contactNumber !== undefined) service.contactNumber = contactNumber;
-
-    // Update image only if a new one is uploaded
-    if (req.file) {
-      service.image = req.file.path;
-    }
-
-    const updated = await service.save();
-    res.json(updated);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+  });
 });
-
 // Add availability date
 // Block a date (mark as unavailable)
 router.post('/:id/block-date', auth, isProvider, async (req, res) => {
