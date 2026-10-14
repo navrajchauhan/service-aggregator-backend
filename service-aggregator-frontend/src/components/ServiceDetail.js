@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { AuthContext } from '../context/AuthContext';
@@ -180,6 +180,39 @@ if (error) {
             <p style={{ color: '#555' }}>{service.description}</p>
           </div>
         )}
+
+        {service.packages && service.packages.length > 0 ? (
+          <div style={{ marginBottom: '24px' }}>
+            <h4 style={{ marginBottom: '10px' }}>Packages</h4>
+            <div style={{ display: 'grid', gap: '10px' }}>
+              {service.packages.map((pkg, index) => (
+                <div
+                  key={index}
+                  style={{
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    background: '#fafafa',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+                    <strong>{pkg.name}</strong>
+                    <span>₹{pkg.price}</span>
+                  </div>
+                  {pkg.description && (
+                    <p style={{ margin: '6px 0 0', color: '#555', fontSize: '0.95rem' }}>
+                      {pkg.description}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : service.price ? (
+          <div style={{ marginBottom: '24px' }}>
+            <strong>Price:</strong> ₹{service.price}
+          </div>
+        ) : null}
         {((service.images && service.images.length > 0) || service.image) && (
           <div style={{ marginBottom: '24px' }}>
             <div
@@ -217,7 +250,7 @@ if (error) {
           </div>
         )}
         <div className="service-meta" style={{ marginBottom: '28px' }}>
-          {service.price && <span><strong>Price:</strong> ₹{service.price}</span>}
+          {/* {service.price && <span><strong>Price:</strong> ₹{service.price}</span>} */}
           {service.location && <span><strong>Location:</strong> {service.location}</span>}
           {service.contactNumber && <span><strong>Contact:</strong> {service.contactNumber}</span>}
         </div>

@@ -11,8 +11,15 @@ router.post('/', auth, isProvider, upload.array('images', 5), async (req, res) =
     console.log('FILES:', req.files);
     const imageUrls = req.files ? req.files.map(file => file.path) : [];
 
+    let packages = [];
+    if (req.body.packages) {
+      packages = typeof req.body.packages === 'string'
+        ? JSON.parse(req.body.packages)
+        : req.body.packages;
+    }
     const service = new Service({
       ...req.body,
+      packages,
       provider: req.user._id,
       providerName: req.user.name,
       images: imageUrls,
@@ -106,6 +113,8 @@ router.delete('/:id', auth, isProvider, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Edit current services
 router.put('/:id', auth, isProvider, (req, res) => {
   upload.array('images', 5)(req, res, async (err) => {
     if (err) {
@@ -130,7 +139,12 @@ router.put('/:id', auth, isProvider, (req, res) => {
       // Update text fields
       if (req.body.serviceType) service.serviceType = req.body.serviceType;
       if (req.body.description !== undefined) service.description = req.body.description;
-      if (req.body.price !== undefined) service.price = req.body.price;
+      if (req.body.packages !== undefined){
+       const packages = typeof req.body.packages === 'string'
+      ? JSON.parse(req.body.packages)
+      : req.body.packages;
+      service.packages = packages;
+      } 
       if (req.body.location !== undefined) service.location = req.body.location;
       if (req.body.contactNumber !== undefined) service.contactNumber = req.body.contactNumber;
 

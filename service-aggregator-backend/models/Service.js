@@ -9,7 +9,11 @@ const ServiceSchema = new mongoose.Schema({
   providerName: { type: String, required: true },
   serviceType: { type: String, required: true },
   description: { type: String },
-  price: { type: Number },
+  packages: [{
+    name: {type: String, required : true},
+    description:{type: String, default : ''},
+    price:{type: Number, required : true},
+  }],
   location: { type: String },
   contactNumber: { type: String },
   availability: [

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { AuthContext } from '../context/AuthContext';
@@ -158,18 +158,7 @@ const ServiceList = () => {
         <div className="services-grid">
           {filteredServices.map((service) => (
             <div key={service._id} className="service-card">
-              <h3>
-                <Link
-                  to={`/service/${service._id}`}
-                  style={{ color: '#1a1a2e', textDecoration: 'none' }}
-                >
-                  {service.providerName} — {service.serviceType}
-                </Link>
-              </h3>
 
-              {service.description && (
-                <p style={{ color: '#555', marginBottom: '10px' }}>{service.description}</p>
-              )}
               {((service.images && service.images.length > 0) || service.image) && (
                 <img
                   src={service.images?.[0] || service.image}
@@ -183,11 +172,35 @@ const ServiceList = () => {
                   }}
                 />
               )}
-              <div className="service-meta">
-                {service.price && <span><strong>Price:</strong> ₹{service.price}</span>}
-                {service.location && <span><strong>Location:</strong> {service.location}</span>}
-                {service.contactNumber && <span><strong>Contact:</strong> {service.contactNumber}</span>}
-              </div>
+              <h3>
+                <Link
+                  to={`/service/${service._id}`}
+                  style={{ color: '#1a1a2e', textDecoration: 'none' }}
+                >
+                  {service.providerName} — {service.serviceType}
+                </Link>
+              </h3>
+
+              {service.description && (
+                <p style={{ color: '#555', marginBottom: '10px' }}>
+                  {service.description.slice(0,100)}
+                  {service.description.length > 100 ? '...': ''}</p>
+              )}
+              
+              {/* Packages preview */}
+              {service.packages && service.packages.length > 0 ? (
+                <div style={{ marginBottom: '12px' }}>
+                  <strong>From:</strong>{' '}
+                  ₹{Math.min(...service.packages.map((p) => Number(p.price)))}
+                  <span style={{ color: '#666', fontSize: '0.9rem' }}>
+                    {' '}({service.packages.length} package{service.packages.length > 1 ? 's' : ''})
+                  </span>
+                </div>
+              ) : service.price ? (
+                <div style={{ marginBottom: '12px' }}>
+                  <strong>Price:</strong> ₹{service.price}
+                </div>
+              ) : null}
 
               {user?.role === 'consumer' && (
                 <button

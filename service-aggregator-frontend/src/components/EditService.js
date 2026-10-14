@@ -1,24 +1,26 @@
 import React, { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import API from '../api';
-
 
 const EditService = () => {
   const { id } = useParams();
   const { user, token } = useContext(AuthContext);
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     serviceType: '',
     description: '',
-    price: '',
     location: '',
     contactNumber: '',
     images: [],
   });
-  const [images, setImages] = useState([]);
+
+  const [packages, setPackages] = useState([
+    { name: '', description: '', price: '' },
+  ]);
+
+  const [images, setImages] = useState([]); // new images to upload
   const [blockedDates, setBlockedDates] = useState([]);
   const [newDate, setNewDate] = useState('');
   const [loading, setLoading] = useState(true);
@@ -45,14 +47,25 @@ const EditService = () => {
         setFormData({
           serviceType: service.serviceType || '',
           description: service.description || '',
-          price: service.price || '',
           location: service.location || '',
           contactNumber: service.contactNumber || '',
-          image: service.image || [],
+          images: service.images || [],
         });
 
-        // Only keep dates that are blocked
-        const blocked = (service.availability || []).filter((a) => a.isAvailable === false);
+        // Load existing packages
+        if (service.packages && service.packages.length > 0) {
+          setPackages(
+            service.packages.map((pkg) => ({
+              name: pkg.name || '',
+              description: pkg.description || '',
+              price: pkg.price ?? '',
+            }))
+          );
+        }
+
+        const blocked = (service.availability || []).filter(
+          (a) => a.isAvailable === false
+        );
         setBlockedDates(blocked);
         setLoading(false);
       } catch (err) {
@@ -68,37 +81,60 @@ const EditService = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const updatePackage = (index, field, value) => {
+    const updated = [...packages];
+    updated[index][field] = value;
+    setPackages(updated);
+  };
+
+  const addPackage = () => {
+    setPackages([...packages, { name: '', description: '', price: '' }]);
+  };
+
+  const removePackage = (index) => {
+    if (packages.length === 1) return;
+    setPackages(packages.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError('');
-  setSuccess('');
+    e.preventDefault();
+    setError('');
+    setSuccess('');
 
-  try {
-    const data = new FormData();
-    data.append('serviceType', formData.serviceType);
-    data.append('description', formData.description || '');
-    data.append('price', formData.price || '');
-    data.append('location', formData.location || '');
-    data.append('contactNumber', formData.contactNumber || '');
+    const validPackages = packages.filter(
+      (pkg) => pkg.name.trim() && pkg.price !== '' && !isNaN(Number(pkg.price))
+    );
 
-    images.forEach((file) => {
-      data.append('images', file);
-    });
+    if (validPackages.length === 0) {
+      setError('Please add at least one valid package with name and price');
+      return;
+    }
 
-    await API.put(`/api/services/${id}`, data, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        
-      },
-    });
+    try {
+      const data = new FormData();
+      data.append('serviceType', formData.serviceType);
+      data.append('description', formData.description || '');
+      data.append('location', formData.location || '');
+      data.append('contactNumber', formData.contactNumber || '');
+      data.append('packages', JSON.stringify(validPackages));
 
-    setSuccess('Service updated successfully!');
-    setTimeout(() => navigate('/my-services'), 1200);
-  } catch (err) {
-    console.error('Edit error:', err.response?.data || err.message);
-    setError(err.response?.data?.error || 'Failed to update service');
-  }
-};
+      images.forEach((file) => {
+        data.append('images', file);
+      });
+
+      await API.put(`/api/services/${id}`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setSuccess('Service updated successfully!');
+      setTimeout(() => navigate('/my-services'), 1200);
+    } catch (err) {
+      console.error('Edit error:', err.response?.data || err.message);
+      setError(err.response?.data?.error || 'Failed to update service');
+    }
+  };
 
   const handleBlockDate = async () => {
     if (!newDate) {
@@ -113,7 +149,9 @@ const EditService = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const blocked = (res.data.availability || []).filter((a) => a.isAvailable === false);
+      const blocked = (res.data.availability || []).filter(
+        (a) => a.isAvailable === false
+      );
       setBlockedDates(blocked);
       setNewDate('');
       setDateMessage('Date blocked successfully');
@@ -124,12 +162,13 @@ const EditService = () => {
 
   const handleUnblockDate = async (dateId) => {
     try {
-      const res = await API.delete(
-        `/api/services/${id}/block-date/${dateId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await API.delete(`/api/services/${id}/block-date/${dateId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      const blocked = (res.data.availability || []).filter((a) => a.isAvailable === false);
+      const blocked = (res.data.availability || []).filter(
+        (a) => a.isAvailable === false
+      );
       setBlockedDates(blocked);
       setDateMessage('Date unblocked');
     } catch (err) {
@@ -151,90 +190,241 @@ const EditService = () => {
       <form onSubmit={handleSubmit} style={{ marginBottom: '40px' }}>
         <div style={{ marginBottom: '15px' }}>
           <label>Service Type</label>
-          <input type="text" name="serviceType" value={formData.serviceType} onChange={handleChange} required style={{ width: '100%', padding: '8px' }} />
+          <input
+            type="text"
+            name="serviceType"
+            value={formData.serviceType}
+            onChange={handleChange}
+            required
+            style={{ width: '100%', padding: '8px' }}
+          />
         </div>
 
         <div style={{ marginBottom: '15px' }}>
           <label>Description</label>
-          <textarea name="description" value={formData.description} onChange={handleChange} rows="3" style={{ width: '100%', padding: '8px' }} />
-        </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label>Price (₹)</label>
-          <input type="number" name="price" value={formData.price} onChange={handleChange} style={{ width: '100%', padding: '8px' }} />
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            rows="3"
+            style={{ width: '100%', padding: '8px' }}
+          />
         </div>
 
         <div style={{ marginBottom: '15px' }}>
           <label>Location</label>
-          <input type="text" name="location" value={formData.location} onChange={handleChange} style={{ width: '100%', padding: '8px' }} />
+          <input
+            type="text"
+            name="location"
+            value={formData.location}
+            onChange={handleChange}
+            style={{ width: '100%', padding: '8px' }}
+          />
         </div>
 
         <div style={{ marginBottom: '15px' }}>
           <label>Contact Number</label>
-          <input type="text" name="contactNumber" value={formData.contactNumber} onChange={handleChange} style={{ width: '100%', padding: '8px' }} />
+          <input
+            type="text"
+            name="contactNumber"
+            value={formData.contactNumber}
+            onChange={handleChange}
+            style={{ width: '100%', padding: '8px' }}
+          />
+        </div>
+
+        {/* Packages */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', marginBottom: '10px' }}>
+            <strong>Packages</strong>
+          </label>
+
+          {packages.map((pkg, index) => (
+            <div
+              key={index}
+              style={{
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '10px',
+                background: '#fafafa',
+              }}
+            >
+              <div style={{ marginBottom: '10px' }}>
+                <label>Package Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Basic, Standard, Premium"
+                  value={pkg.name}
+                  onChange={(e) => updatePackage(index, 'name', e.target.value)}
+                  style={{ width: '100%', padding: '8px' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label>Package Description</label>
+                <input
+                  type="text"
+                  placeholder="What’s included?"
+                  value={pkg.description}
+                  onChange={(e) =>
+                    updatePackage(index, 'description', e.target.value)
+                  }
+                  style={{ width: '100%', padding: '8px' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label>Price (₹)</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 5000"
+                  value={pkg.price}
+                  onChange={(e) => updatePackage(index, 'price', e.target.value)}
+                  style={{ width: '100%', padding: '8px' }}
+                />
+              </div>
+
+              {packages.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removePackage(index)}
+                  style={{
+                    background: '#e94560',
+                    color: 'white',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Remove Package
+                </button>
+              )}
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addPackage}
+            style={{
+              background: '#4cc9f0',
+              color: '#1a1a2e',
+              border: 'none',
+              padding: '8px 14px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+            }}
+          >
+            + Add Package
+          </button>
+        </div>
+
+        {/* Current images */}
+        {formData.images && formData.images.length > 0 && (
+          <div style={{ marginBottom: '15px' }}>
+            <p style={{ marginBottom: '8px' }}>Current Images:</p>
+            <div style={{ display: 'flex', gap: '10px', overflowX: 'auto' }}>
+              {formData.images.map((img, index) => (
+                <img
+                  key={index}
+                  src={img}
+                  alt={`Current ${index + 1}`}
+                  style={{
+                    width: '120px',
+                    height: '90px',
+                    objectFit: 'cover',
+                    borderRadius: '6px',
+                    flexShrink: 0,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Upload new images */}
+        <div style={{ marginBottom: '15px' }}>
+          <label>Upload New Images (max 5) — this will replace old ones</label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => setImages(Array.from(e.target.files || []))}
+            style={{ width: '100%', padding: '8px' }}
+          />
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button type="submit" style={{ padding: '10px 20px', background: '#1a1a2e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+          <button
+            type="submit"
+            style={{
+              padding: '10px 20px',
+              background: '#1a1a2e',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
             Save Changes
           </button>
-          <button type="button" onClick={() => navigate('/my-services')} style={{ padding: '10px 20px', background: '#ccc', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/my-services')}
+            style={{
+              padding: '10px 20px',
+              background: '#ccc',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
             Cancel
           </button>
         </div>
-
-        {/* Show current images */}
-      {formData.images && formData.images.length > 0 && (
-        <div style={{ marginBottom: '15px' }}>
-          <p style={{ marginBottom: '8px' }}>Current Images:</p>
-          <div style={{ display: 'flex', gap: '10px', overflowX: 'auto' }}>
-            {formData.images.map((img, index) => (
-              <img
-                key={index}
-                src={img}
-                alt={`Current ${index + 1}`}
-                style={{
-                  width: '120px',
-                  height: '90px',
-                  objectFit: 'cover',
-                  borderRadius: '6px',
-                  flexShrink: 0,
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Upload new images */}
-      <div style={{ marginBottom: '15px' }}>
-        <label>Upload New Images (max 5) — this will replace old ones</label>
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => setImages(Array.from(e.target.files))}
-          style={{ width: '100%', padding: '8px' }}
-        />
-      </div>
       </form>
 
       {/* Blocked Dates Section */}
       <div style={{ borderTop: '2px solid #eee', paddingTop: '30px' }}>
         <h3>Blocked / Booked Dates</h3>
         <p style={{ color: '#666', marginBottom: '15px' }}>
-          By default you are available on all dates. Block a date only if you are already booked (online or offline).
+          By default you are available on all dates. Block a date only if you are
+          already booked (online or offline).
         </p>
 
         {dateMessage && (
-          <p style={{ color: dateMessage.includes('success') || dateMessage.includes('unblocked') ? 'green' : 'red' }}>
+          <p
+            style={{
+              color:
+                dateMessage.includes('success') || dateMessage.includes('unblocked')
+                  ? 'green'
+                  : 'red',
+            }}
+          >
             {dateMessage}
           </p>
         )}
 
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-          <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} style={{ padding: '8px' }} />
-          <button onClick={handleBlockDate} style={{ background: '#e94560', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>
+          <input
+            type="date"
+            value={newDate}
+            onChange={(e) => setNewDate(e.target.value)}
+            style={{ padding: '8px' }}
+          />
+          <button
+            onClick={handleBlockDate}
+            style={{
+              background: '#e94560',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
             Block Date
           </button>
         </div>
@@ -244,9 +434,31 @@ const EditService = () => {
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             {blockedDates.map((item) => (
-              <div key={item._id} style={{ background: '#ffebee', border: '1px solid #ef9a9a', borderRadius: '6px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                key={item._id}
+                style={{
+                  background: '#ffebee',
+                  border: '1px solid #ef9a9a',
+                  borderRadius: '6px',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
                 <span>{new Date(item.date).toLocaleDateString()}</span>
-                <button onClick={() => handleUnblockDate(item._id)} style={{ background: '#1a1a2e', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '12px' }}>
+                <button
+                  onClick={() => handleUnblockDate(item._id)}
+                  style={{
+                    background: '#1a1a2e',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '2px 8px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
                   Unblock
                 </button>
               </div>
