@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +12,7 @@ const NotificationBell = () => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const [listRes, countRes] = await Promise.all([
         API.get('/api/notifications', {
@@ -27,7 +27,7 @@ const NotificationBell = () => {
     } catch (err) {
       console.error(err);
     }
-  };
+  },[token]);
 
   useEffect(() => {
     if (token) {
@@ -35,7 +35,8 @@ const NotificationBell = () => {
       const interval = setInterval(fetchNotifications, 15000); // refresh every 15s
       return () => clearInterval(interval);
     }
-  }, [token]);
+    else return;
+  }, [token,fetchNotifications]);
 
   const markAsRead = async (id) => {
     try {

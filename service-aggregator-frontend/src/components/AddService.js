@@ -78,7 +78,7 @@ const AddService = () => {
   data.append('images', file);
 });
 
-   const res = await API.post('/api/services', data, {
+   await API.post('/api/services', data, {
       headers: {
         Authorization: `Bearer ${token}`,
         // 'Content-Type': 'multipart/form-data',
@@ -257,7 +257,8 @@ const AddService = () => {
           />
         </div>
         <button
-          type="submit"
+          type="submit" 
+          disabled = {loading}
           style={{
             padding: '10px 20px',
             background: '#1a1a2e',
@@ -267,7 +268,7 @@ const AddService = () => {
             cursor: 'pointer',
           }}
         >
-          Add Service
+          {loading ? 'Adding...': 'Add Service'}
         </button>
       </form>
     </div>
