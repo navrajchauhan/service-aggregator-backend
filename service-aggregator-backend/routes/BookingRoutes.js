@@ -3,6 +3,7 @@ const router = express.Router();
 const Booking = require('../models/Booking');
 const Service = require('../models/Service');
 const { auth } = require('../middleware/auth');
+const Notification = require('../models/Notification');
 
 // Create a new booking (only consumers)
 router.post('/', auth, async (req, res) => {
