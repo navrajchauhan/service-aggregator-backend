@@ -2,6 +2,8 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import API from '../api';
+
 
 const NotificationBell = () => {
   const { token } = useContext(AuthContext);
@@ -13,10 +15,10 @@ const NotificationBell = () => {
   const fetchNotifications = async () => {
     try {
       const [listRes, countRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/notifications', {
+        API.get('/api/notifications', {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get('http://localhost:5000/api/notifications/unread-count', {
+        API.get('/api/notifications/unread-count', {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -37,8 +39,8 @@ const NotificationBell = () => {
 
   const markAsRead = async (id) => {
     try {
-      await axios.patch(
-        `http://localhost:5000/api/notifications/${id}/read`,
+      await API.patch(
+        `/api/notifications/${id}/read`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -50,8 +52,8 @@ const NotificationBell = () => {
 
   const markAllAsRead = async () => {
     try {
-      await axios.patch(
-        'http://localhost:5000/api/notifications/read-all',
+      await API.patch(
+        '/api/notifications/read-all',
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

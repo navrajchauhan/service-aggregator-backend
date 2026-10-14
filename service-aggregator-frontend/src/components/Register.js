@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import API from '../api';
+
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -23,7 +25,7 @@ const Register = () => {
     setSuccess('');
 
     try {
-      await axios.post('http://localhost:5000/api/auth/register', formData);
+      await API.post('/api/auth/register', formData);
       setSuccess('Registration successful! Please login.');
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {

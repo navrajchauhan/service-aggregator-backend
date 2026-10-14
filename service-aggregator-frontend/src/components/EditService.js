@@ -2,6 +2,8 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import API from '../api';
+
 
 const EditService = () => {
   const { id } = useParams();
@@ -29,7 +31,7 @@ const EditService = () => {
 
     const fetchService = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/services/my-services', {
+        const res = await API.get('/api/services/my-services', {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -83,7 +85,7 @@ const EditService = () => {
       data.append('images', file);
     });
 
-    await axios.put(`http://localhost:5000/api/services/${id}`, data, {
+    await API.put(`/api/services/${id}`, data, {
       headers: {
         Authorization: `Bearer ${token}`,
         
@@ -105,8 +107,8 @@ const EditService = () => {
     }
 
     try {
-      const res = await axios.post(
-        `http://localhost:5000/api/services/${id}/block-date`,
+      const res = await API.post(
+        `/api/services/${id}/block-date`,
         { date: newDate },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -122,8 +124,8 @@ const EditService = () => {
 
   const handleUnblockDate = async (dateId) => {
     try {
-      const res = await axios.delete(
-        `http://localhost:5000/api/services/${id}/block-date/${dateId}`,
+      const res = await API.delete(
+        `/api/services/${id}/block-date/${dateId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

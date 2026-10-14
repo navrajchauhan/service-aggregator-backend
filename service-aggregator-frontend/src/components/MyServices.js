@@ -2,6 +2,8 @@ import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
+import API from '../api';
+
 
 const MyServices = () => {
   const { user, token } = useContext(AuthContext);
@@ -14,7 +16,7 @@ const MyServices = () => {
 
     const fetchMyServices = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/services/my-services', {
+        const res = await API.get('/api/services/my-services', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -34,7 +36,7 @@ const MyServices = () => {
     if (!window.confirm('Are you sure you want to delete this service?')) return;
 
     try {
-      await axios.delete(`http://localhost:5000/api/services/${id}`, {
+      await API.delete(`/api/services/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

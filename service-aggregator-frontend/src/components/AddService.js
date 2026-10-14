@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import API from '../api';
 
 const AddService = () => {
   const { user, token } = useContext(AuthContext);
@@ -50,7 +51,7 @@ const AddService = () => {
   data.append('images', file);
 });
 
-   const res = await axios.post('http://localhost:5000/api/services', data, {
+   const res = await API.post('/api/services', data, {
       headers: {
         Authorization: `Bearer ${token}`,
         // 'Content-Type': 'multipart/form-data',

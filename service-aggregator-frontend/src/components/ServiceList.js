@@ -4,6 +4,8 @@ import axios from 'axios';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { AuthContext } from '../context/AuthContext';
+import API from '../api';
+
 
 const ServiceList = () => {
   const { user, token } = useContext(AuthContext);
@@ -17,7 +19,7 @@ const ServiceList = () => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/services');
+        const res = await API.get('/api/services');
         setServices(res.data);
         setLoading(false);
       } catch (err) {
@@ -97,8 +99,8 @@ const ServiceList = () => {
     }
 
     try {
-      await axios.post(
-        'http://localhost:5000/api/bookings',
+      await API.post(
+        '/api/bookings',
         { serviceId: bookingService._id, date: bookingDate },
         { headers: { Authorization: `Bearer ${token}` } }
       );
