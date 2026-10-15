@@ -1,56 +1,11 @@
-import React, { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { AuthContext } from '../context/AuthContext';
 import API from '../api';
 
-
 const ServiceDetail = () => {
-
-    // Force calendar styles
-useEffect(() => {
-  const style = document.createElement('style');
-  style.innerHTML = `
-    .react-calendar__tile {
-      background-color: white !important;
-      color: #333 !important;
-      border-radius: 6px !important;
-    }
-    .react-calendar__tile:enabled:hover {
-      background-color: #f0f0f0 !important;
-    }
-    .react-calendar__tile.blocked-date {
-      background-color: #ef5350 !important;
-      color: white !important;
-      font-weight: 600 !important;
-    }
-    .react-calendar__tile.blocked-date:enabled:hover {
-      background-color: #e53935 !important;
-      color: white !important;
-    }
-    .react-calendar__tile--active {
-      background-color: #1a1a2e !important;
-      color: white !important;
-    }
-    .react-calendar__tile--now {
-      background-color: #fff9c4 !important;
-      border: 2px solid #fbc02d !important;
-    }
-    .react-calendar__tile--now.blocked-date {
-      background-color: #ef5350 !important;
-      border: 2px solid #c62828 !important;
-      color: white !important;
-    }
-  `;
-  document.head.appendChild(style);
-
-  return () => {
-    document.head.removeChild(style);
-  };
-}, []);
-
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, token } = useContext(AuthContext);
@@ -59,8 +14,50 @@ useEffect(() => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [bookingDate, setBookingDate] = useState(null);
+  const [selectedPackage, setSelectedPackage] = useState(null);
   const [message, setMessage] = useState('');
   const [showBooking, setShowBooking] = useState(false);
+
+  // Force calendar styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .react-calendar__tile {
+        background-color: white !important;
+        color: #333 !important;
+        border-radius: 6px !important;
+      }
+      .react-calendar__tile:enabled:hover {
+        background-color: #f0f0f0 !important;
+      }
+      .react-calendar__tile.blocked-date {
+        background-color: #ef5350 !important;
+        color: white !important;
+        font-weight: 600 !important;
+      }
+      .react-calendar__tile.blocked-date:enabled:hover {
+        background-color: #e53935 !important;
+        color: white !important;
+      }
+      .react-calendar__tile--active {
+        background-color: #1a1a2e !important;
+        color: white !important;
+      }
+      .react-calendar__tile--now {
+        background-color: #fff9c4 !important;
+        border: 2px solid #fbc02d !important;
+      }
+      .react-calendar__tile--now.blocked-date {
+        background-color: #ef5350 !important;
+        border: 2px solid #c62828 !important;
+        color: white !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchService = async () => {
@@ -84,26 +81,24 @@ useEffect(() => {
   }, [id]);
 
   const isDateBlocked = (date) => {
-  if (!service?.availability || !date) return false;
+    if (!service?.availability || !date) return false;
 
-  const checkDate = new Date(date);
-  checkDate.setHours(0, 0, 0, 0);
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
 
-  return service.availability.some((a) => {
-    if (a.isAvailable !== false) return false;
+    return service.availability.some((a) => {
+      if (a.isAvailable !== false) return false;
 
-    const blocked = new Date(a.date);
-    blocked.setHours(0, 0, 0, 0);
+      const blocked = new Date(a.date);
+      blocked.setHours(0, 0, 0, 0);
 
-    return blocked.getTime() === checkDate.getTime();
-  });
-};
+      return blocked.getTime() === checkDate.getTime();
+    });
+  };
 
-  // Style the calendar tiles
   const tileClassName = ({ date, view }) => {
-    if (view === 'month'&& isDateBlocked(date)) {
-        return 'blocked-date';
-      
+    if (view === 'month' && isDateBlocked(date)) {
+      return 'blocked-date';
     }
     return null;
   };
@@ -119,38 +114,57 @@ useEffect(() => {
       return;
     }
 
+    if (service.packages?.length > 0 && !selectedPackage) {
+      setMessage('Please select a package');
+      return;
+    }
+
     try {
       await API.post(
         '/api/bookings',
-        { serviceId: service._id, date: bookingDate },
+        {
+          serviceId: service._id,
+          date: bookingDate,
+          selectedPackage,
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       setMessage('Booking request sent successfully!');
       setShowBooking(false);
       setBookingDate(null);
+      setSelectedPackage(null);
     } catch (err) {
       setMessage(err.response?.data?.error || 'Booking failed');
     }
   };
 
   if (loading) {
-  return (
-    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-      <p style={{ fontSize: '1.1rem', color: '#666' }}>Loading service details...</p>
-    </div>
-  );
-}
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <p style={{ fontSize: '1.1rem', color: '#666' }}>
+          Loading service details...
+        </p>
+      </div>
+    );
+  }
 
-if (error) {
-  return (
-    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-      <p style={{ color: 'red' }}>{error}</p>
-      <button onClick={() => navigate(-1)} style={{ marginTop: '15px' }} className="primary-btn">
-        Go Back
-      </button>
-    </div>
-  );
-}
+  if (error) {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <p style={{ color: 'red' }}>{error}</p>
+        <button
+          onClick={() => navigate(-1)}
+          style={{ marginTop: '15px' }}
+          className="primary-btn"
+        >
+          Go Back
+        </button>
+      </div>
+    );
+  }
+
+  if (!service) return null;
 
   return (
     <div>
@@ -181,6 +195,7 @@ if (error) {
           </div>
         )}
 
+        {/* Packages display */}
         {service.packages && service.packages.length > 0 ? (
           <div style={{ marginBottom: '24px' }}>
             <h4 style={{ marginBottom: '10px' }}>Packages</h4>
@@ -195,12 +210,24 @@ if (error) {
                     background: '#fafafa',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                    }}
+                  >
                     <strong>{pkg.name}</strong>
                     <span>₹{pkg.price}</span>
                   </div>
                   {pkg.description && (
-                    <p style={{ margin: '6px 0 0', color: '#555', fontSize: '0.95rem' }}>
+                    <p
+                      style={{
+                        margin: '6px 0 0',
+                        color: '#555',
+                        fontSize: '0.95rem',
+                      }}
+                    >
                       {pkg.description}
                     </p>
                   )}
@@ -213,6 +240,8 @@ if (error) {
             <strong>Price:</strong> ₹{service.price}
           </div>
         ) : null}
+
+        {/* Images carousel */}
         {((service.images && service.images.length > 0) || service.image) && (
           <div style={{ marginBottom: '24px' }}>
             <div
@@ -249,112 +278,198 @@ if (error) {
             )}
           </div>
         )}
+
         <div className="service-meta" style={{ marginBottom: '28px' }}>
-          {/* {service.price && <span><strong>Price:</strong> ₹{service.price}</span>} */}
-          {service.location && <span><strong>Location:</strong> {service.location}</span>}
-          {service.contactNumber && <span><strong>Contact:</strong> {service.contactNumber}</span>}
+          {service.location && (
+            <span>
+              <strong>Location:</strong> {service.location}
+            </span>
+          )}
+          {service.contactNumber && (
+            <span>
+              <strong>Contact:</strong> {service.contactNumber}
+            </span>
+          )}
         </div>
 
-        {/* Calendar Section */}
+        {/* Availability Calendar */}
         <div style={{ marginBottom: '28px' }}>
           <h4 style={{ marginBottom: '12px' }}>Availability Calendar</h4>
-            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '12px' }}>
+          <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '12px' }}>
             <span style={{ color: '#333' }}>■ White</span> = Available &nbsp;&nbsp;
             <span style={{ color: '#ef5350' }}>■ Red</span> = Booked / Blocked
-            </p>
+          </p>
 
           <div style={{ maxWidth: '350px' }}>
-            <Calendar
-              tileClassName={tileClassName}
-              minDate={new Date()}
-            />
+            <Calendar tileClassName={tileClassName} minDate={new Date()} />
           </div>
         </div>
 
         {message && (
-          <p style={{
-            color: message.includes('success') ? 'green' : 'red',
-            marginBottom: '16px'
-          }}>
+          <p
+            style={{
+              color: message.includes('success') ? 'green' : 'red',
+              marginBottom: '16px',
+            }}
+          >
             {message}
           </p>
         )}
 
         {user?.role === 'consumer' && (
-          <button className="primary-btn" onClick={() => setShowBooking(true)}>
+          <button
+            className="primary-btn"
+            onClick={() => {
+              setShowBooking(true);
+              setBookingDate(null);
+              setSelectedPackage(null);
+              setMessage('');
+            }}
+          >
             Book This Service
           </button>
         )}
 
         {!user && (
           <p>
-            <Link to="/login" style={{ color: '#4cc9f0' }}>Login</Link> as a consumer to book this service.
+            <Link to="/login" style={{ color: '#4cc9f0' }}>
+              Login
+            </Link>{' '}
+            as a consumer to book this service.
           </p>
         )}
       </div>
 
       {/* Booking Modal */}
-        {showBooking && (
+      {showBooking && (
         <div className="modal-overlay">
-            <div className="modal-content">
+          <div className="modal-content">
             <h3>Book: {service.serviceType}</h3>
-            <p style={{ margin: '8px 0 16px' }}>Provider: {service.providerName}</p>
+            <p style={{ margin: '8px 0 16px' }}>
+              Provider: {service.providerName}
+            </p>
+
+            {/* Package selection */}
+            {service.packages && service.packages.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <p style={{ marginBottom: '8px', fontWeight: 500 }}>
+                  Select a package:
+                </p>
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  {service.packages.map((pkg, index) => (
+                    <label
+                      key={index}
+                      style={{
+                        display: 'block',
+                        border:
+                          selectedPackage?.name === pkg.name &&
+                          Number(selectedPackage?.price) === Number(pkg.price)
+                            ? '2px solid #1a1a2e'
+                            : '1px solid #ddd',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        background: '#fafafa',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="package"
+                        checked={
+                          selectedPackage?.name === pkg.name &&
+                          Number(selectedPackage?.price) === Number(pkg.price)
+                        }
+                        onChange={() => setSelectedPackage(pkg)}
+                        style={{ marginRight: '8px' }}
+                      />
+                      <strong>{pkg.name}</strong> — ₹{pkg.price}
+                      {pkg.description && (
+                        <div
+                          style={{
+                            fontSize: '0.9rem',
+                            color: '#555',
+                            marginTop: '4px',
+                          }}
+                        >
+                          {pkg.description}
+                        </div>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div style={{ marginBottom: '16px' }}>
-                <p style={{ marginBottom: '8px', fontWeight: 500 }}>Select a date:</p>
-                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '10px' }}>
-                <span style={{ color: '#333' }}>■ White</span> = Available &nbsp;&nbsp;
-                <span style={{ color: '#ef5350' }}>■ Red</span> = Booked / Blocked
-                </p>
+              <p style={{ marginBottom: '8px', fontWeight: 500 }}>
+                Select a date:
+              </p>
+              <p
+                style={{
+                  fontSize: '0.85rem',
+                  color: '#666',
+                  marginBottom: '10px',
+                }}
+              >
+                <span style={{ color: '#333' }}>■ White</span> = Available
+                &nbsp;&nbsp;
+                <span style={{ color: '#ef5350' }}>■ Red</span> = Booked /
+                Blocked
+              </p>
 
-                <Calendar
+              <Calendar
                 onChange={setBookingDate}
                 value={bookingDate}
                 tileClassName={tileClassName}
                 minDate={new Date()}
-                />
+              />
             </div>
 
             {bookingDate && isDateBlocked(bookingDate) && (
-                <p style={{ color: 'red', marginBottom: '12px' }}>
+              <p style={{ color: 'red', marginBottom: '12px' }}>
                 This date is already booked. Please select another date.
-                </p>
+              </p>
             )}
 
             {bookingDate && !isDateBlocked(bookingDate) && (
-                <p style={{ color: 'green', marginBottom: '12px' }}>
+              <p style={{ color: 'green', marginBottom: '12px' }}>
                 Selected: {bookingDate.toLocaleDateString()}
-                </p>
+              </p>
             )}
 
             <div className="form-actions">
-                <button
+              <button
                 className="primary-btn"
                 onClick={handleBook}
-                disabled={!bookingDate || isDateBlocked(bookingDate)}
-                >
+                disabled={
+                  !bookingDate ||
+                  isDateBlocked(bookingDate) ||
+                  (service.packages?.length > 0 && !selectedPackage)
+                }
+              >
                 Confirm Booking
-                </button>
-                <button
+              </button>
+              <button
                 onClick={() => {
-                    setShowBooking(false);
-                    setBookingDate(null);
-                    setMessage('');
+                  setShowBooking(false);
+                  setBookingDate(null);
+                  setSelectedPackage(null);
+                  setMessage('');
                 }}
                 style={{
-                    padding: '9px 18px',
-                    borderRadius: '5px',
-                    border: '1px solid #ccc',
-                    background: '#f5f5f5',
-                    cursor: 'pointer',
+                  padding: '9px 18px',
+                  borderRadius: '5px',
+                  border: '1px solid #ccc',
+                  background: '#f5f5f5',
+                  cursor: 'pointer',
                 }}
-                >
+              >
                 Cancel
-                </button>
+              </button>
             </div>
-            </div>
+          </div>
         </div>
-        )}
+      )}
     </div>
   );
 };

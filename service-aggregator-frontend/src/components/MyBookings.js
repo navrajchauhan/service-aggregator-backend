@@ -1,8 +1,6 @@
-import React, { useEffect, useState, useContext } from 'react';
-
+import { useEffect, useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import API from '../api';
-
 
 const MyBookings = () => {
   const { user, token } = useContext(AuthContext);
@@ -34,8 +32,22 @@ const MyBookings = () => {
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setBookings(
-        bookings.map((b) => (b._id === id ? { ...b, status } : b))
+
+      setBookings((prev) =>
+        prev.map((b) =>
+          b._id === id
+            ? {
+                ...b,
+                status,
+                cancellationReason:
+                  status === 'cancelled'
+                    ? user.role === 'consumer'
+                      ? 'Cancelled by customer'
+                      : 'Cancelled by provider'
+                    : b.cancellationReason,
+              }
+            : b
+        )
       );
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to update status');
@@ -63,7 +75,14 @@ const MyBookings = () => {
       <h2 style={{ marginBottom: '20px' }}>My Bookings</h2>
 
       {bookings.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '10px' }}>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            background: 'white',
+            borderRadius: '10px',
+          }}
+        >
           <h3 style={{ marginBottom: '10px' }}>No bookings yet</h3>
           <p style={{ color: '#666' }}>
             {user.role === 'consumer'
@@ -88,7 +107,9 @@ const MyBookings = () => {
               >
                 <h3 style={{ margin: '0 0 8px 0' }}>
                   {serviceDeleted ? (
-                    <span style={{ color: '#c62828' }}>Service no longer available</span>
+                    <span style={{ color: '#c62828' }}>
+                      Service no longer available
+                    </span>
                   ) : (
                     booking.service.serviceType
                   )}
@@ -99,16 +120,18 @@ const MyBookings = () => {
                     <p style={{ margin: '4px 0' }}>
                       <strong>Provider:</strong> {booking.provider?.name || 'N/A'}
                     </p>
-                    {booking.service.price && (
+
+                    {/* {booking.service.price && (
                       <p style={{ margin: '4px 0' }}>
                         <strong>Price:</strong> ₹{booking.service.price}
                       </p>
-                    )}
+                    )} */}
                   </>
                 )}
 
                 <p style={{ margin: '4px 0' }}>
-                  <strong>Date:</strong> {new Date(booking.date).toLocaleDateString()}
+                  <strong>Date:</strong>{' '}
+                  {new Date(booking.date).toLocaleDateString()}
                 </p>
 
                 <p style={{ margin: '4px 0' }}>
@@ -127,45 +150,83 @@ const MyBookings = () => {
                     {booking.status}
                   </span>
                 </p>
-
-                {/* Show cancellation reason */}
+                {booking.selectedPackage?.name && (
+                  <p style={{ margin: '4px 0' }}>
+                    <strong>Package:</strong> {booking.selectedPackage.name}
+                    {booking.selectedPackage.price != null && (
+                      <> — ₹{booking.selectedPackage.price}</>
+                    )}
+                  </p>
+                )}
                 {booking.status === 'cancelled' && (
-                  <p style={{ color: '#c62828', fontSize: '0.9rem', marginTop: '6px' }}>
-                    Reason: {booking.cancellationReason || 'No reason provided'}
+                  <p
+                    style={{
+                      color: '#c62828',
+                      fontSize: '0.9rem',
+                      marginTop: '6px',
+                    }}
+                  >
+                    Reason:{' '}
+                    {booking.cancellationReason || 'No reason provided'}
                   </p>
                 )}
 
-                {/* Provider actions */}
-                {user.role === 'provider' && booking.status === 'pending' && !serviceDeleted && (
-                  <div style={{ marginTop: '12px', display: 'flex', gap: '10px' }}>
-                    <button
-                      onClick={() => updateStatus(booking._id, 'confirmed')}
-                      style={{
-                        background: 'green',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 14px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      onClick={() => updateStatus(booking._id, 'cancelled')}
-                      style={{
-                        background: '#e94560',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 14px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
+                {/* Actions */}
+                <div
+                  style={{
+                    marginTop: '12px',
+                    display: 'flex',
+                    gap: '10px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  {/* Provider can confirm pending bookings */}
+                  {user.role === 'provider' &&
+                    booking.status === 'pending' &&
+                    !serviceDeleted && (
+                      <button
+                        onClick={() => updateStatus(booking._id, 'confirmed')}
+                        style={{
+                          background: 'green',
+                          color: 'white',
+                          border: 'none',
+                          padding: '8px 14px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Confirm
+                      </button>
+                    )}
+
+                  {/* Consumer or Provider can cancel pending/confirmed */}
+                  {(user.role === 'provider' || user.role === 'consumer') &&
+                    (booking.status === 'pending' ||
+                      booking.status === 'confirmed') &&
+                    !serviceDeleted && (
+                      <button
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              'Are you sure you want to cancel this booking?'
+                            )
+                          ) {
+                            updateStatus(booking._id, 'cancelled');
+                          }
+                        }}
+                        style={{
+                          background: '#e94560',
+                          color: 'white',
+                          border: 'none',
+                          padding: '8px 14px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Cancel Booking
+                      </button>
+                    )}
+                </div>
               </div>
             );
           })}

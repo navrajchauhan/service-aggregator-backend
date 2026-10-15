@@ -104,17 +104,19 @@ const NotificationBell = () => {
 
       {open && (
         <div
+          className = "notification-dropdown"
           style={{
-            position: 'absolute',
-            right: 0,
-            top: '40px',
-            width: '320px',
-            maxHeight: '400px',
+            position: 'fixed',
+            top: '60px',
+            left: '12px',
+            right: '12px',
+            width: '500px',
+            maxHeight: '70vh',
             overflowY: 'auto',
             background: 'white',
             borderRadius: '10px',
             boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-            zIndex: 1000,
+            zIndex: 2000,
             color: '#333',
           }}
         >

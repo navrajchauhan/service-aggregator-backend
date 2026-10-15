@@ -1,11 +1,9 @@
-import React, { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
-
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { AuthContext } from '../context/AuthContext';
 import API from '../api';
-
 
 const ServiceList = () => {
   const { user, token } = useContext(AuthContext);
@@ -14,6 +12,7 @@ const ServiceList = () => {
   const [filterType, setFilterType] = useState('');
   const [bookingService, setBookingService] = useState(null);
   const [bookingDate, setBookingDate] = useState(null);
+  const [selectedPackage, setSelectedPackage] = useState(null);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -93,20 +92,32 @@ const ServiceList = () => {
       setMessage('Please select a date');
       return;
     }
+
     if (isDateBlocked(bookingService, bookingDate)) {
       setMessage('This date is already booked');
+      return;
+    }
+
+    if (bookingService.packages?.length > 0 && !selectedPackage) {
+      setMessage('Please select a package');
       return;
     }
 
     try {
       await API.post(
         '/api/bookings',
-        { serviceId: bookingService._id, date: bookingDate },
+        {
+          serviceId: bookingService._id,
+          date: bookingDate,
+          selectedPackage,
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       setMessage('Booking request sent successfully!');
       setBookingService(null);
       setBookingDate(null);
+      setSelectedPackage(null);
     } catch (err) {
       setMessage(err.response?.data?.error || 'Booking failed');
     }
@@ -119,12 +130,12 @@ const ServiceList = () => {
   );
 
   if (loading) {
-  return (
-    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-      <p style={{ fontSize: '1.1rem', color: '#666' }}>Loading services...</p>
-    </div>
-  );
-}
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <p style={{ fontSize: '1.1rem', color: '#666' }}>Loading services...</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -140,25 +151,36 @@ const ServiceList = () => {
       </div>
 
       {message && (
-        <p style={{ color: message.includes('success') ? 'green' : 'red', marginBottom: '15px' }}>
+        <p
+          style={{
+            color: message.includes('success') ? 'green' : 'red',
+            marginBottom: '15px',
+          }}
+        >
           {message}
         </p>
       )}
 
       {filteredServices.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '10px' }}>
-            <h3 style={{ marginBottom: '8px' }}>No services found</h3>
-            <p style={{ color: '#666' }}>
-              {filterType
-                ? `No services match “${filterType}”. Try a different filter.`
-                : 'No services have been added yet. Check back later.'}
-            </p>
-          </div>
-        ): (
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            background: 'white',
+            borderRadius: '10px',
+          }}
+        >
+          <h3 style={{ marginBottom: '8px' }}>No services found</h3>
+          <p style={{ color: '#666' }}>
+            {filterType
+              ? `No services match “${filterType}”. Try a different filter.`
+              : 'No services have been added yet. Check back later.'}
+          </p>
+        </div>
+      ) : (
         <div className="services-grid">
           {filteredServices.map((service) => (
             <div key={service._id} className="service-card">
-
               {((service.images && service.images.length > 0) || service.image) && (
                 <img
                   src={service.images?.[0] || service.image}
@@ -172,6 +194,7 @@ const ServiceList = () => {
                   }}
                 />
               )}
+
               <h3>
                 <Link
                   to={`/service/${service._id}`}
@@ -183,17 +206,19 @@ const ServiceList = () => {
 
               {service.description && (
                 <p style={{ color: '#555', marginBottom: '10px' }}>
-                  {service.description.slice(0,100)}
-                  {service.description.length > 100 ? '...': ''}</p>
+                  {service.description.slice(0, 100)}
+                  {service.description.length > 100 ? '...' : ''}
+                </p>
               )}
-              
-              {/* Packages preview */}
+
               {service.packages && service.packages.length > 0 ? (
                 <div style={{ marginBottom: '12px' }}>
                   <strong>From:</strong>{' '}
                   ₹{Math.min(...service.packages.map((p) => Number(p.price)))}
                   <span style={{ color: '#666', fontSize: '0.9rem' }}>
-                    {' '}({service.packages.length} package{service.packages.length > 1 ? 's' : ''})
+                    {' '}
+                    ({service.packages.length} package
+                    {service.packages.length > 1 ? 's' : ''})
                   </span>
                 </div>
               ) : service.price ? (
@@ -208,6 +233,7 @@ const ServiceList = () => {
                   onClick={() => {
                     setBookingService(service);
                     setBookingDate(null);
+                    setSelectedPackage(null);
                     setMessage('');
                   }}
                 >
@@ -219,18 +245,81 @@ const ServiceList = () => {
         </div>
       )}
 
-      {/* Booking Modal with react-calendar */}
+      {/* Booking Modal */}
       {bookingService && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Book: {bookingService.serviceType}</h3>
-            <p style={{ margin: '8px 0 16px' }}>Provider: {bookingService.providerName}</p>
+            <p style={{ margin: '8px 0 16px' }}>
+              Provider: {bookingService.providerName}
+            </p>
+
+            {/* Package selection */}
+            {bookingService.packages && bookingService.packages.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <p style={{ marginBottom: '8px', fontWeight: 500 }}>
+                  Select a package:
+                </p>
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  {bookingService.packages.map((pkg, index) => (
+                    <label
+                      key={index}
+                      style={{
+                        display: 'block',
+                        border:
+                          selectedPackage?.name === pkg.name &&
+                          Number(selectedPackage?.price) === Number(pkg.price)
+                            ? '2px solid #1a1a2e'
+                            : '1px solid #ddd',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        background: '#fafafa',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="package"
+                        checked={
+                          selectedPackage?.name === pkg.name &&
+                          Number(selectedPackage?.price) === Number(pkg.price)
+                        }
+                        onChange={() => setSelectedPackage(pkg)}
+                        style={{ marginRight: '8px' }}
+                      />
+                      <strong>{pkg.name}</strong> — ₹{pkg.price}
+                      {pkg.description && (
+                        <div
+                          style={{
+                            fontSize: '0.9rem',
+                            color: '#555',
+                            marginTop: '4px',
+                          }}
+                        >
+                          {pkg.description}
+                        </div>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div style={{ marginBottom: '16px' }}>
-              <p style={{ marginBottom: '8px', fontWeight: 500 }}>Select a date:</p>
-              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '10px' }}>
-                <span style={{ color: '#333' }}>■ White</span> = Available &nbsp;&nbsp;
-                <span style={{ color: '#ef5350' }}>■ Red</span> = Booked / Blocked
+              <p style={{ marginBottom: '8px', fontWeight: 500 }}>
+                Select a date:
+              </p>
+              <p
+                style={{
+                  fontSize: '0.85rem',
+                  color: '#666',
+                  marginBottom: '10px',
+                }}
+              >
+                <span style={{ color: '#333' }}>■ White</span> = Available
+                &nbsp;&nbsp;
+                <span style={{ color: '#ef5350' }}>■ Red</span> = Booked /
+                Blocked
               </p>
 
               <Calendar
@@ -257,7 +346,11 @@ const ServiceList = () => {
               <button
                 className="primary-btn"
                 onClick={handleBook}
-                disabled={!bookingDate || isDateBlocked(bookingService, bookingDate)}
+                disabled={
+                  !bookingDate ||
+                  isDateBlocked(bookingService, bookingDate) ||
+                  (bookingService.packages?.length > 0 && !selectedPackage)
+                }
               >
                 Confirm Booking
               </button>
@@ -265,6 +358,7 @@ const ServiceList = () => {
                 onClick={() => {
                   setBookingService(null);
                   setBookingDate(null);
+                  setSelectedPackage(null);
                   setMessage('');
                 }}
                 style={{

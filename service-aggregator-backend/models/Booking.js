@@ -33,6 +33,11 @@ const bookingSchema = new mongoose.Schema({
   type: String,
   default: null,
 },
+selectedPackage: {
+  name: { type: String },
+  description: { type: String },
+  price: { type: Number },
+},
 });
 
 module.exports = mongoose.model('Booking', bookingSchema);
